@@ -1,34 +1,36 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/auth/authContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/auth/authContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!email || !password) {
-      setError('Please enter both email and password');
+      setError("Please enter both email and password");
       return;
     }
 
     try {
       await login(email, password);
-      navigate('/auth/department-redirect');
+      navigate("/auth/department-redirect");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again.",
+      );
     }
   };
 
@@ -99,7 +101,9 @@ export default function Login() {
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      setRememberMe(checked as boolean)
+                    }
                     disabled={isLoading}
                   />
                   <label
@@ -128,14 +132,15 @@ export default function Login() {
                     Signing in...
                   </>
                 ) : (
-                  'Sign In'
+                  "Sign In"
                 )}
               </Button>
             </form>
 
             <div className="mt-6 pt-6 border-t border-border">
               <p className="text-xs text-muted-foreground">
-                Use your registered email and password to sign in. If you don't have an account, please contact your administrator.
+                Use your registered email and password to sign in. If you don't
+                have an account, please contact your administrator.
               </p>
             </div>
           </div>
