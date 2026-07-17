@@ -90,7 +90,7 @@ export default function App() {
                 />
 
                 <Route
-                  path="/departments/tech"
+                  path="/departments/tech/*"
                   element={
                     <ProtectedRoute>
                       <DepartmentGuard allowedDepartment="tech">
