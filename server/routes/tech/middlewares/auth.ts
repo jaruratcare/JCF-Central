@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { sbSelect, sbInsert, toCamel } from "../supabase";
 
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!;
 
 export interface AppUser {
   id: string;

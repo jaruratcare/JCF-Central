@@ -8,9 +8,11 @@ import { Menu, X, LogOut, Home, Settings } from 'lucide-react';
 interface AppLayoutProps {
   children: React.ReactNode;
   departmentName: string;
+  /** Optional department-specific navigation rendered below the default sidebar links. */
+  secondaryNav?: React.ReactNode;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName }) => {
+export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, secondaryNav }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -50,6 +52,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName }
             <Settings className="w-5 h-5" />
             <span className="text-sm font-medium">Settings</span>
           </button>
+
+          {secondaryNav}
         </nav>
 
         <div className="p-6 space-y-3 border-t border-sidebar-border">

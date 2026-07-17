@@ -52,6 +52,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('jcf_auth_token', session.access_token);
       }
 
+      if (session?.access_token && session?.refresh_token) {
+        // Hydrate the shared Supabase client so supabase.auth.getSession()
+        // resolves for tech's api-client auth getter and its own AuthProvider.
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      }
+
       setUser(user);
       localStorage.setItem('jcf_user', JSON.stringify(user));
     } catch (err) {

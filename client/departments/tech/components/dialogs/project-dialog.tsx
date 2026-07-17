@@ -87,8 +87,9 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
         }
       });
     } else {
+      const createData = { ...data, deadline: data.deadline || undefined };
       createProject.mutate({
-        data: isCeoOffice ? (data as any) : ({ ...data, departmentId: undefined, visibleDepartmentIds: undefined } as any),
+        data: isCeoOffice ? (createData as any) : ({ ...createData, departmentId: undefined, visibleDepartmentIds: undefined } as any),
       }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });

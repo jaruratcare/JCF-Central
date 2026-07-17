@@ -2,9 +2,9 @@ import React from 'react';
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { AppLayout as JcfAppLayout } from '@/shared/layouts/AppLayout';
 import { AuthProvider, useAuth } from "@/departments/tech/contexts/auth-context";
-import { AppLayout as TechAppLayout } from "@/departments/tech/components/layout/app-layout";
+import { TechProjectNav } from "@/departments/tech/components/layout/project-nav";
 import { setBaseUrl, setAuthTokenGetter } from "@/departments/tech/lib/api-client";
-import { supabase } from "@/departments/tech/lib/supabase";
+import { supabase } from "@/utils/supabase";
 
 // Configure API base URL and token getter for PostgREST backend route
 setBaseUrl("/api/tech");
@@ -35,7 +35,7 @@ function TechRouter() {
   }
 
   return (
-    <TechAppLayout>
+    <JcfAppLayout departmentName="Tech" secondaryNav={<TechProjectNav />}>
       <Switch>
         <Route path="/" component={ProjectsList} />
         <Route path="/projects/:projectId" component={ProjectDashboard} />
@@ -47,18 +47,16 @@ function TechRouter() {
         <Route path="/projects/:projectId/items/:itemId" component={ItemDetail} />
         <Route component={NotFound} />
       </Switch>
-    </TechAppLayout>
+    </JcfAppLayout>
   );
 }
 
 export default function TechDashboard() {
   return (
-    <JcfAppLayout departmentName="Tech">
-      <AuthProvider>
-        <WouterRouter base="/departments/tech">
-          <TechRouter />
-        </WouterRouter>
-      </AuthProvider>
-    </JcfAppLayout>
+    <AuthProvider>
+      <WouterRouter base="/departments/tech">
+        <TechRouter />
+      </WouterRouter>
+    </AuthProvider>
   );
 }
