@@ -13,6 +13,7 @@ setAuthTokenGetter(async () => {
   return data.session?.access_token ?? null;
 });
 
+import DepartmentDashboard from "@/departments/tech/pages/department-dashboard";
 import ProjectsList from "@/departments/tech/pages/projects";
 import ProjectDashboard from "@/departments/tech/pages/project-dashboard";
 import Board from "@/departments/tech/pages/board";
@@ -37,7 +38,8 @@ function TechRouter() {
   return (
     <JcfAppLayout departmentName="Tech" secondaryNav={<TechProjectNav />}>
       <Switch>
-        <Route path="/" component={ProjectsList} />
+        <Route path="/" component={DepartmentDashboard} />
+        <Route path="/projects" component={ProjectsList} />
         <Route path="/projects/:projectId" component={ProjectDashboard} />
         <Route path="/projects/:projectId/board" component={Board} />
         <Route path="/projects/:projectId/backlog" component={Backlog} />

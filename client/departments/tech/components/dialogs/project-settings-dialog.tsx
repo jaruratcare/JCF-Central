@@ -167,7 +167,7 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           setDeleteConfirmOpen(false);
           onOpenChange(false);
-          navigate("/");
+          navigate("/projects");
         },
       },
     );
