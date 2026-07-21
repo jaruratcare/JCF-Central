@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "wouter";
 import {
   useListSprints,
@@ -6,10 +7,14 @@ import {
   getListSprintsQueryKey,
   getListProjectItemsQueryKey,
   getGetProjectQueryKey,
+  type Project,
+  type Sprint,
+  type WorkItem,
 } from "@/departments/tech/lib/api-client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ItemTypeIcon, getTypeColor } from "@/departments/tech/components/item-utils";
+import { CalendarView } from "@/departments/tech/components/calendar-view";
 import {
   addDays,
   differenceInDays,
@@ -19,7 +24,16 @@ import {
   min,
   startOfDay,
 } from "date-fns";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, GanttChartSquare, Calendar as CalendarIcon } from "lucide-react";
+
+type View = "gantt" | "calendar";
+
+interface GanttViewProps {
+  projectId: number;
+  project?: Project;
+  sprints?: Sprint[];
+  items?: WorkItem[];
+}
 
 /* ── colour maps ── */
 const SPRINT_STATUS_COLOR: Record<string, string> = {
@@ -69,10 +83,11 @@ function itemBarRange(
 }
 
 
-/* ── component ── */
+/* ── container: loads data once, toggles between Gantt and Calendar ── */
 export default function Gantt() {
   const { projectId: projectIdStr } = useParams<{ projectId: string }>();
   const projectId = parseInt(projectIdStr!);
+  const [view, setView] = useState<View>("gantt");
 
   const { data: project,  isLoading: loadingProject  } = useGetProject(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) },
@@ -93,25 +108,67 @@ export default function Gantt() {
     );
   }
 
+  const toggle = (
+    <div className="inline-flex rounded-lg border bg-muted/30 p-0.5">
+      <button
+        onClick={() => setView("gantt")}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          view === "gantt" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <GanttChartSquare className="h-4 w-4" /> Gantt
+      </button>
+      <button
+        onClick={() => setView("calendar")}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          view === "calendar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <CalendarIcon className="h-4 w-4" /> Calendar
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {view === "gantt" ? "Gantt Chart" : "Calendar"}
+          </h1>
+          <p className="text-muted-foreground">
+            {view === "gantt"
+              ? "Date-based timeline of sprints and work items."
+              : "Monthly view of due dates, sprints, and the project deadline."}
+          </p>
+        </div>
+        {toggle}
+      </div>
+
+      {view === "gantt" ? (
+        <GanttView projectId={projectId} project={project} sprints={sprints} items={items} />
+      ) : (
+        <CalendarView projectId={projectId} project={project} sprints={sprints} items={items} />
+      )}
+    </div>
+  );
+}
+
+/* ── Gantt timeline view ── */
+function GanttView({ projectId, project, sprints, items }: GanttViewProps) {
   const sprintsWithDates = (sprints || []).filter((s) => s.startDate && s.endDate);
 
   if (sprintsWithDates.length === 0) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gantt Chart</h1>
-          <p className="text-muted-foreground">Date-based timeline of sprints and work items.</p>
-        </div>
-        <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed bg-card/50">
-          <CalendarDays className="h-14 w-14 text-muted-foreground/40 mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No sprints with dates</h3>
-          <p className="text-muted-foreground text-sm max-w-sm mb-4">
-            Create sprints with start and end dates on the Sprints page to see the Gantt chart.
-          </p>
-          <Link href={`/projects/${projectId}/sprints`} className="text-primary hover:underline text-sm">
-            Go to Sprints →
-          </Link>
-        </div>
+      <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed bg-card/50">
+        <CalendarDays className="h-14 w-14 text-muted-foreground/40 mb-4" />
+        <h3 className="text-xl font-semibold mb-2">No sprints with dates</h3>
+        <p className="text-muted-foreground text-sm max-w-sm mb-4">
+          Create sprints with start and end dates on the Sprints page to see the Gantt chart.
+        </p>
+        <Link href={`/projects/${projectId}/sprints`} className="text-primary hover:underline text-sm">
+          Go to Sprints →
+        </Link>
       </div>
     );
   }
@@ -172,12 +229,7 @@ export default function Gantt() {
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gantt Chart</h1>
-        <p className="text-muted-foreground">Date-based timeline of sprints and work items.</p>
-      </div>
-
+    <div className="space-y-4">
       <p className="sm:hidden text-xs text-muted-foreground flex items-center gap-1.5">
         <span>← Scroll sideways to see the full timeline →</span>
       </p>
