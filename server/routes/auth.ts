@@ -1,6 +1,43 @@
 import { RequestHandler } from 'express';
 import { supabase, supabaseAdmin } from '../supabaseClient';
 
+export const handleRequestPasswordReset: RequestHandler = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ error: 'Email is required' });
+      return;
+    }
+
+    if (!supabase) {
+      res.status(503).json({ error: 'Authentication service not configured' });
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+      },
+    });
+
+    if (error) {
+      console.error('Password reset request error:', error);
+      res.status(400).json({ error: error.message });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Password reset request accepted. If email delivery is configured, the code should arrive shortly.',
+    });
+  } catch (error) {
+    console.error('Password reset request failed:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const handleLogin: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;

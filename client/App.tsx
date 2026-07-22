@@ -11,6 +11,7 @@ import { ProtectedRoute } from "./routing/ProtectedRoute";
 import { DepartmentGuard } from "./routing/DepartmentGuard";
 
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Settings from "./pages/Settings";
 import DepartmentRedirect from "./pages/DepartmentRedirect";
 import Unauthorized from "./pages/Unauthorized";
@@ -36,87 +37,118 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="/auth/department-redirect" element={
-                <ProtectedRoute>
-                  <DepartmentRedirect />
-                </ProtectedRoute>
-              } />
-              <Route path="/unauthorized" element={<Unauthorized />} />
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/auth/department-redirect"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentRedirect />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/unauthorized" element={<Unauthorized />} />
 
-              <Route path="/departments/ceo-office" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="ceo-office">
-                    <CEOOfficeDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/ceo-office"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="ceo-office">
+                        <CEOOfficeDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/hr" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="hr">
-                    <HRDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/hr"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="hr">
+                        <HRDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/psy-connect" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="psy-connect">
-                    <PsyConnectDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/psy-connect"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="psy-connect">
+                        <PsyConnectDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/tech" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="tech">
-                    <TechDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/tech/*"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="tech">
+                        <TechDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/pr" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="pr">
-                    <PRDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/pr"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="pr">
+                        <PRDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/carcinoma" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="carcinoma">
-                    <CarcinomaDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/carcinoma"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="carcinoma">
+                        <CarcinomaDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/medical-partnership" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="medical-partnership">
-                    <MedicalPartnershipDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/medical-partnership"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="medical-partnership">
+                        <MedicalPartnershipDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/departments/cgmp" element={
-                <ProtectedRoute>
-                  <DepartmentGuard allowedDepartment="cgmp">
-                    <CGMPDashboard />
-                  </DepartmentGuard>
-                </ProtectedRoute>
-              } />
+                <Route
+                  path="/departments/cgmp"
+                  element={
+                    <ProtectedRoute>
+                      <DepartmentGuard allowedDepartment="cgmp">
+                        <CGMPDashboard />
+                      </DepartmentGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </BrowserRouter>
           </AuthProvider>
         </ThemeProvider>
