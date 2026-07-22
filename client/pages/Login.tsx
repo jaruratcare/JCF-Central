@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/authContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,12 +113,12 @@ export default function Login() {
                     Remember me
                   </label>
                 </div>
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="text-sm hover:underline font-medium text-primary"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               <Button

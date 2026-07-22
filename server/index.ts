@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
-import { handleLogin, handleLogout } from "./routes/auth";
+import { handleLogin, handleLogout, handleRequestPasswordReset } from "./routes/auth";
 import { handleChangePassword } from "./routes/password";
 import techRouter from "./routes/tech/index";
 
@@ -25,6 +25,7 @@ export function createServer() {
   // Auth proxy routes
   app.post("/api/auth/login", handleLogin);
   app.post("/api/auth/logout", handleLogout);
+  app.post("/api/auth/request-password-reset", handleRequestPasswordReset);
   app.post("/api/auth/change-password", handleChangePassword);
 
   app.use("/api/tech", techRouter);

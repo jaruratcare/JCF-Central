@@ -11,6 +11,7 @@ import { ProtectedRoute } from "./routing/ProtectedRoute";
 import { DepartmentGuard } from "./routing/DepartmentGuard";
 
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Settings from "./pages/Settings";
 import DepartmentRedirect from "./pages/DepartmentRedirect";
 import Unauthorized from "./pages/Unauthorized";
@@ -38,6 +39,7 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route
                   path="/settings"
                   element={
