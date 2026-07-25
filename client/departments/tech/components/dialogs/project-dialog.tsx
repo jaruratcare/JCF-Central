@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useCreateProject, useUpdateProject, getListProjectsQueryKey, getGetProjectQueryKey } from "@/departments/tech/lib/api-client";
+import type { ProjectInput } from "@/departments/tech/lib/api-client/generated/api.schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useOrg } from "@/departments/tech/hooks/use-org";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -34,6 +36,7 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const { isCeoOffice, departments, currentUser } = useOrg();
+  const { toast } = useToast();
 
   const isEditing = !!project;
 
@@ -78,23 +81,41 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
       const { key: _key, departmentId: _departmentId, visibleDepartmentIds: _visibleDepartmentIds, ...updateData } = data;
       updateProject.mutate({
         id: project.id,
-        data: { ...updateData, deadline: updateData.deadline || null },
+        data: {
+          ...updateData,
+          deadline:    updateData.deadline    || undefined,
+          description: updateData.description || undefined,
+        },
       }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(project.id) });
           onOpenChange(false);
-        }
+          toast({ title: "Project updated", description: `"${data.name}" has been saved.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to update project", description: msg, variant: "destructive" });
+        },
       });
     } else {
-      const createData = { ...data, deadline: data.deadline || undefined };
-      createProject.mutate({
-        data: isCeoOffice ? (createData as any) : ({ ...createData, departmentId: undefined, visibleDepartmentIds: undefined } as any),
-      }, {
+      const payload: ProjectInput = {
+        name: data.name,
+        key: data.key,
+        deadline: data.deadline || undefined,
+        description: data.description || undefined,
+        ...(isCeoOffice ? { departmentId: data.departmentId, visibleDepartmentIds: data.visibleDepartmentIds } : {}),
+      };
+      createProject.mutate({ data: payload }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           onOpenChange(false);
-        }
+        toast({ title: "Project created", description: `"${data.name}" is ready to use.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to create project", description: msg, variant: "destructive" });
+        },
       });
     }
   };

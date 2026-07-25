@@ -160,7 +160,7 @@ export const UpdateProjectBody = zod.object({
   "name": zod.string().min(1).optional(),
   "description": zod.string().optional(),
   "deadline": zod.string().nullish(),
-  "status": zod.enum(['active', 'signed_off']).optional()
+  "status": zod.enum(['planning', 'active', 'hold', 'sign_off', 'signed_off']).optional()
 })
 
 export const UpdateProjectResponse = zod.object({
@@ -418,7 +418,7 @@ export const ListProjectItemsResponseItem = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -445,7 +445,7 @@ export const CreateItemParams = zod.object({
 
 
 export const CreateItemBody = zod.object({
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string().min(1),
   "description": zod.string().optional(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']).optional(),
@@ -454,7 +454,8 @@ export const CreateItemBody = zod.object({
   "storyPoints": zod.number().optional(),
   "dueDate": zod.string().optional(),
   "sprintId": zod.number().optional(),
-  "epicId": zod.number().optional()
+  "epicId": zod.number().optional(),
+  "parentItemId": zod.number().optional()
 })
 
 
@@ -470,7 +471,7 @@ export const GetBacklogResponseItem = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -498,7 +499,7 @@ export const GetItemResponse = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -533,6 +534,7 @@ export const UpdateItemBody = zod.object({
   "dueDate": zod.string().nullish(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
+  "parentItemId": zod.number().nullish(),
   "sortOrder": zod.number().optional()
 })
 
@@ -541,7 +543,7 @@ export const UpdateItemResponse = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),

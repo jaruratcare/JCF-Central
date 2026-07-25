@@ -14,4 +14,5 @@ export const WorkItemInputType = {
   story: 'story',
   task: 'task',
   bug: 'bug',
+  subtask: 'subtask',
 } as const;

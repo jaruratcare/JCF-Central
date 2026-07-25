@@ -11,8 +11,41 @@ import {
   UpdateItemBody,
   DeleteItemParams,
 } from "./api-zod";
+import { normalizeItemFormPayload } from "./lib/normalizers";
 
 const router: IRouter = Router();
+
+/**
+ * Hierarchy: epic → story → task → subtask
+ * Maps each child type to its required parent type.
+ */
+const REQUIRED_PARENT_TYPE: Record<string, string | undefined> = {
+  story:   "epic",
+  task:    "story",
+  subtask: "task",
+};
+
+/**
+ * Validate that a parentItemId is consistent with the child type.
+ * Returns an error string, or null if valid.
+ */
+async function validateParent(childType: string, parentItemId: unknown): Promise<string | null> {
+  const requiredParentType = REQUIRED_PARENT_TYPE[childType];
+
+  if (childType === "subtask" && !parentItemId) {
+    return "parentItemId is required when type is 'subtask'";
+  }
+
+  if (!parentItemId || !requiredParentType) return null; // epic/bug have no constraint
+
+  const parents = await sbSelect("work_items", { id: `eq.${parentItemId}` });
+  if (!parents[0]) return "Parent item not found";
+
+  if (parents[0].type !== requiredParentType) {
+    return `A '${childType}' must have a parent of type '${requiredParentType}', but got '${parents[0].type}'`;
+  }
+  return null;
+}
 
 /**
  * Returns true if assigneeId is null/undefined, if the project has no tracked
@@ -54,6 +87,9 @@ router.post("/projects/:projectId/items", async (req, res): Promise<void> => {
     res.status(400).json({ error: "assigneeId must be a member of this project" });
     return;
   }
+  // Validate parent type hierarchy
+  const parentErr = await validateParent(parsed.data.type, parsed.data.parentItemId);
+  if (parentErr) { res.status(400).json({ error: parentErr }); return; }
 
   const [projects, existingItems] = await Promise.all([
     sbSelect("projects", { id: `eq.${params.data.projectId}` }),
@@ -65,14 +101,14 @@ router.post("/projects/:projectId/items", async (req, res): Promise<void> => {
   const nextNum = existingItems.length + 1;
   const itemKey = `${project.key}-${nextNum}`;
 
-  const row = await sbInsert("work_items", toSnake({
+  const row = await sbInsert("work_items", toSnake(normalizeItemFormPayload({
     ...parsed.data,
     projectId: params.data.projectId,
     itemKey,
     status: parsed.data.status ?? "todo",
     priority: parsed.data.priority ?? "medium",
     sortOrder: nextNum,
-  } as Record<string, unknown>));
+  } as Record<string, unknown>)));
   res.status(201).json(toCamel(row));
 });
 
@@ -107,6 +143,20 @@ router.get("/items/:id", async (req, res): Promise<void> => {
   res.json(toCamel(item));
 });
 
+/** GET /items/:id/children — direct child items (stories of an epic, tasks of a story, subtasks of a task) */
+router.get("/items/:id/children", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = GetItemParams.safeParse({ id: parseInt(raw, 10) });
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const { item, access } = await itemAccess(req, params.data.id);
+  if (!item || !access) { res.status(404).json({ error: "Item not found" }); return; }
+  const children = await sbSelect("work_items", {
+    parent_item_id: `eq.${params.data.id}`,
+    order: "sort_order.asc,created_at.asc",
+  });
+  res.json(children.map(toCamel));
+});
+
 router.patch("/items/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateItemParams.safeParse({ id: parseInt(raw, 10) });
@@ -120,7 +170,16 @@ router.patch("/items/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "assigneeId must be a member of this project" });
     return;
   }
-  const row = await sbUpdate("work_items", { id: `eq.${params.data.id}` }, toSnake(parsed.data as Record<string, unknown>));
+  // Validate parent hierarchy when type or parentItemId changes
+  const isChangingType = "type" in parsed.data;
+  const isChangingParent = "parentItemId" in parsed.data;
+  if (isChangingType || isChangingParent) {
+    const effectiveType = (parsed.data as any).type ?? (item.type as string);
+    const effectiveParentId = isChangingParent ? (parsed.data as any).parentItemId : item.parent_item_id;
+    const parentErr = await validateParent(effectiveType, effectiveParentId);
+    if (parentErr) { res.status(400).json({ error: parentErr }); return; }
+  }
+  const row = await sbUpdate("work_items", { id: `eq.${params.data.id}` }, toSnake(normalizeItemFormPayload(parsed.data as Record<string, unknown>)));
   if (!row) { res.status(404).json({ error: "Item not found" }); return; }
   res.json(toCamel(row));
 });

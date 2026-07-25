@@ -16,6 +16,11 @@ export interface WorkItem {
   sprintId?: number | null;
   /** @nullable */
   epicId?: number | null;
+  /**
+     * ID of the parent work item. Set when this item is a sub-task.
+     * @nullable
+     */
+  parentItemId?: number | null;
   type: WorkItemType;
   title: string;
   /** @nullable */

@@ -99,7 +99,7 @@ export const ListProjectsResponseItem = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
-  "status": zod.enum(['active', 'signed_off']),
+  "status": zod.enum(['planning', 'active', 'hold', 'sign_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
   "createdAt": zod.string(),
@@ -138,7 +138,7 @@ export const GetProjectResponse = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
-  "status": zod.enum(['active', 'signed_off']),
+  "status": zod.enum(['planning', 'active', 'hold', 'sign_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
   "createdAt": zod.string(),
@@ -160,7 +160,7 @@ export const UpdateProjectBody = zod.object({
   "name": zod.string().min(1).optional(),
   "description": zod.string().optional(),
   "deadline": zod.string().nullish(),
-  "status": zod.enum(['active', 'signed_off']).optional()
+  "status": zod.enum(['planning', 'active', 'hold', 'sign_off']).optional()
 })
 
 export const UpdateProjectResponse = zod.object({
@@ -169,7 +169,7 @@ export const UpdateProjectResponse = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
-  "status": zod.enum(['active', 'signed_off']),
+  "status": zod.enum(['planning', 'active', 'hold', 'sign_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
   "createdAt": zod.string(),
@@ -198,7 +198,7 @@ export const SignOffProjectResponse = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
-  "status": zod.enum(['active', 'signed_off']),
+  "status": zod.enum(['planning', 'active', 'hold', 'sign_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
   "createdAt": zod.string(),
@@ -418,7 +418,8 @@ export const ListProjectItemsResponseItem = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "parentItemId": zod.number().nullish().describe('ID of the parent work item. Set when this item is a sub-task.'),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -445,7 +446,7 @@ export const CreateItemParams = zod.object({
 
 
 export const CreateItemBody = zod.object({
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string().min(1),
   "description": zod.string().optional(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']).optional(),
@@ -454,7 +455,8 @@ export const CreateItemBody = zod.object({
   "storyPoints": zod.number().optional(),
   "dueDate": zod.string().optional(),
   "sprintId": zod.number().optional(),
-  "epicId": zod.number().optional()
+  "epicId": zod.number().optional(),
+  "parentItemId": zod.number().optional().describe('ID of the parent work item. Required when type is subtask.')
 })
 
 
@@ -470,7 +472,8 @@ export const GetBacklogResponseItem = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "parentItemId": zod.number().nullish().describe('ID of the parent work item. Set when this item is a sub-task.'),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -498,7 +501,8 @@ export const GetItemResponse = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "parentItemId": zod.number().nullish().describe('ID of the parent work item. Set when this item is a sub-task.'),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -533,6 +537,7 @@ export const UpdateItemBody = zod.object({
   "dueDate": zod.string().nullish(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
+  "parentItemId": zod.number().nullish().describe('ID of the parent work item. Null to detach from a parent.'),
   "sortOrder": zod.number().optional()
 })
 
@@ -541,7 +546,8 @@ export const UpdateItemResponse = zod.object({
   "projectId": zod.number(),
   "sprintId": zod.number().nullish(),
   "epicId": zod.number().nullish(),
-  "type": zod.enum(['epic', 'story', 'task', 'bug']),
+  "parentItemId": zod.number().nullish().describe('ID of the parent work item. Set when this item is a sub-task.'),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
@@ -563,6 +569,33 @@ export const DeleteItemParams = zod.object({
   "id": zod.coerce.number()
 })
 
+/**
+ * @summary Get direct children of a work item (stories under epic, tasks under story, subtasks under task)
+ */
+export const GetItemChildrenParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetItemChildrenResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "sprintId": zod.number().nullish(),
+  "epicId": zod.number().nullish(),
+  "parentItemId": zod.number().nullish().describe('ID of the parent work item. Set when this item is a sub-task.'),
+  "type": zod.enum(['epic', 'story', 'task', 'bug', 'subtask']),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'in_review', 'done']),
+  "priority": zod.enum(['low', 'medium', 'high', 'critical']),
+  "assigneeId": zod.string().nullish().describe('User id of the assigned project member.'),
+  "storyPoints": zod.number().nullish(),
+  "dueDate": zod.string().nullish(),
+  "itemKey": zod.string(),
+  "sortOrder": zod.number().optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const GetItemChildrenResponse = zod.array(GetItemChildrenResponseItem)
 
 /**
  * @summary List comments on a work item

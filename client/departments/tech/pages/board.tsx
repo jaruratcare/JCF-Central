@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { ItemTypeIcon, getTypeColor, getPriorityColor, resolveAssigneeName } from "@/departments/tech/components/item-utils";
 import { ItemDialog } from "@/departments/tech/components/dialogs/item-dialog";
 import { CompleteSprintDialog, type Disposition, type IncompleteItem } from "@/departments/tech/components/dialogs/complete-sprint-dialog";
-import { Plus, CheckCircle, Milestone, User } from "lucide-react";
+import { Plus, CheckCircle, Milestone, User, ListTree } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { useOrg } from "@/departments/tech/hooks/use-org";
 
@@ -56,6 +56,7 @@ export default function Board() {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [completePending, setCompletePending] = useState(false);
   const [myTasksOnly, setMyTasksOnly] = useState(false);
+  const [showSubtasks, setShowSubtasks] = useState(true);
   const { currentUser } = useOrg();
 
   const { data: summary, isLoading: loadingSummary } = useGetProjectSummary(projectId, {
@@ -80,8 +81,8 @@ export default function Board() {
   const activeSprintId = summary?.activeSprint?.id;
   const sprintItems = (items ?? [])
     .filter((item) => item.sprintId === activeSprintId)
-    .filter((item) => !myTasksOnly || item.assigneeId === currentUser?.id);
-
+    .filter((item) => !myTasksOnly || item.assigneeId === currentUser?.id)
+    .filter((item) => showSubtasks || item.type !== "subtask");
   /* ── Drag & Drop ── */
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -169,6 +170,8 @@ export default function Board() {
   const doneItems  = sprintItems.filter((i) => i.status === "done").length;
   const totalItems = sprintItems.length;
   const pct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+  // Build a quick lookup for parent item keys (used for subtask badges)
+  const itemKeyById = new Map((items ?? []).map((i) => [i.id, i.itemKey]));
 
   return (
     <div className="flex flex-col h-full">
@@ -197,6 +200,17 @@ export default function Board() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          <Toggle
+            pressed={showSubtasks}
+            onPressedChange={setShowSubtasks}
+            size="sm"
+            variant="outline"
+            aria-label="Toggle subtask visibility"
+            title={showSubtasks ? "Hide sub-tasks" : "Show sub-tasks"}
+          >
+            <ListTree className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Sub-tasks</span>
+          </Toggle>
           <Toggle
             pressed={myTasksOnly}
             onPressedChange={setMyTasksOnly}
@@ -267,62 +281,81 @@ export default function Board() {
                         </button>
                       )}
 
-                      {colItems.map((item, index) => (
-                        <Draggable key={item.id} draggableId={String(item.id)} index={index}>
-                          {(drag, dragSnapshot) => (
-                            <div
-                              ref={drag.innerRef}
-                              {...drag.draggableProps}
-                              {...drag.dragHandleProps}
-                              style={drag.draggableProps.style}
-                            >
-                              <Card
-                                className={`border-border/50 transition-shadow ${
-                                  dragSnapshot.isDragging
-                                    ? "shadow-xl rotate-1 opacity-90"
-                                    : "shadow-sm hover:shadow-md"
-                                }`}
+                      {colItems.map((item, index) => {
+                        const isSubtask = item.type === "subtask";
+                        const parentKey = isSubtask && item.parentItemId
+                          ? itemKeyById.get(item.parentItemId)
+                          : null;
+
+                        return (
+                          <Draggable key={item.id} draggableId={String(item.id)} index={index}>
+                            {(drag, dragSnapshot) => (
+                              <div
+                                ref={drag.innerRef}
+                                {...drag.draggableProps}
+                                {...drag.dragHandleProps}
+                                style={drag.draggableProps.style}
                               >
-                                <CardContent className="p-3 space-y-2">
-                                  {/* Type + key + points */}
-                                  <div className="flex items-center justify-between gap-1">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <ItemTypeIcon
-                                        type={item.type}
-                                        className={`w-3.5 h-3.5 flex-shrink-0 ${getTypeColor(item.type).split(" ")[0]}`}
-                                      />
-                                      <span className="text-[11px] font-mono text-muted-foreground truncate">
-                                        {item.itemKey}
-                                      </span>
-                                    </div>
-                                    {item.storyPoints != null && (
-                                      <span className="text-[10px] bg-secondary text-secondary-foreground rounded-full w-5 h-5 flex items-center justify-center font-semibold flex-shrink-0">
-                                        {item.storyPoints}
-                                      </span>
+                              <Card
+                                  className={`border-border/50 transition-shadow ${
+                                    isSubtask ? "border-l-2 border-l-cyan-400/60" : ""
+                                  } ${
+                                    dragSnapshot.isDragging
+                                      ? "shadow-xl rotate-1 opacity-90"
+                                      : "shadow-sm hover:shadow-md"
+                                  }`}
+                                >
+                                  <CardContent className="p-3 space-y-2">
+                                    {/* Parent badge for subtasks */}
+                                    {isSubtask && parentKey && (
+                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                                        <span>↳</span>
+                                        <Link
+                                          href={`/projects/${projectId}/items/${item.parentItemId}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="font-mono hover:text-cyan-500 transition-colors"
+                                        >
+                                          {parentKey}
+                                        </Link>
+                                      </div>
                                     )}
-                                  </div>
+                                    {/* Type + key + points */}
+                                    <div className="flex items-center justify-between gap-1">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <ItemTypeIcon
+                                          type={item.type}
+                                          className={`w-3.5 h-3.5 flex-shrink-0 ${getTypeColor(item.type).split(" ")[0]}`}
+                                        />
+                                        <span className="text-[11px] font-mono text-muted-foreground truncate">
+                                          {item.itemKey}
+                                        </span>
+                                      </div>
+                                      {item.storyPoints != null && (
+                                        <span className="text-[10px] bg-secondary text-secondary-foreground rounded-full w-5 h-5 flex items-center justify-center font-semibold flex-shrink-0">
+                                          {item.storyPoints}
+                                        </span>
+                                      )}
+                                    </div>
 
-                                  {/* Title */}
-                                  <Link
-                                    href={`/projects/${projectId}/items/${item.id}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="block text-sm font-medium leading-snug line-clamp-2 hover:text-primary transition-colors"
-                                  >
-                                    {item.title}
-                                  </Link>
+                                    {/* Title */}
+                                    <Link
+                                      href={`/projects/${projectId}/items/${item.id}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="block text-sm font-medium leading-snug line-clamp-2 hover:text-primary transition-colors"
+                                    >
+                                      {item.title}
+                                    </Link>
 
-                                  {/* Priority dot + assignee */}
-                                  <div className="flex items-center justify-between pt-0.5">
-                                    <div
-                                      className={`w-2 h-2 rounded-full ${PRIORITY_DOT[item.priority] ?? "bg-slate-400"}`}
-                                      title={`Priority: ${item.priority}`}
-                                    />
-                                    {(() => {
-                                      const assigneeName = resolveAssigneeName(members, item.assigneeId);
-                                      return assigneeName ? (
-                                        <Avatar className="w-5 h-5 border" title={assigneeName}>
+                                    {/* Priority dot + assignee */}
+                                    <div className="flex items-center justify-between pt-0.5">
+                                      <div
+                                        className={`w-2 h-2 rounded-full ${PRIORITY_DOT[item.priority] ?? "bg-slate-400"}`}
+                                        title={`Priority: ${item.priority}`}
+                                      />
+                                      {resolveAssigneeName(members, item.assigneeId) ? (
+                                        <Avatar className="w-5 h-5 border" title={resolveAssigneeName(members, item.assigneeId)!}>
                                           <AvatarFallback className="text-[9px] bg-secondary">
-                                            {assigneeName.slice(0, 2).toUpperCase()}
+                                            {resolveAssigneeName(members, item.assigneeId)!.slice(0, 2).toUpperCase()}
                                           </AvatarFallback>
                                         </Avatar>
                                       ) : (
@@ -330,15 +363,15 @@ export default function Board() {
                                           className="w-5 h-5 rounded-full border border-dashed border-muted-foreground/30"
                                           title="Unassigned"
                                         />
-                                      );
-                                    })()}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
+                                      )}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
 
                       {provided.placeholder}
                     </div>

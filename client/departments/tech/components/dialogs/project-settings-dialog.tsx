@@ -48,8 +48,16 @@ const generalSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   deadline: z.string().optional(),
+  status: z.enum(["planning", "active", "hold", "sign_off"]).optional(),
 });
 type GeneralFormValues = z.infer<typeof generalSchema>;
+
+const STATUS_OPTIONS: { value: "planning" | "active" | "hold" | "sign_off"; label: string }[] = [
+  { value: "planning", label: "Planning" },
+  { value: "active", label: "Active" },
+  { value: "hold", label: "On Hold" },
+  { value: "sign_off", label: "Signed Off" },
+];
 
 const memberSchema = z.object({
   userId: z.string().min(1, "Select a person"),
@@ -88,7 +96,7 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
     [candidateUsers, members],
   );
 
-  const isSignedOff = project.status === "signed_off";
+  const isSignedOff = project.status === "signed_off" || (project.status as string) === "sign_off";
   const canManage = project.accessLevel === "manage";
 
   const generalForm = useForm<GeneralFormValues>({
@@ -97,6 +105,7 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
       name: project.name,
       description: project.description || "",
       deadline: project.deadline ? project.deadline.slice(0, 10) : "",
+      status: (project.status === "signed_off" ? "sign_off" : (project.status as GeneralFormValues["status"])) ?? "planning",
     },
   });
 
@@ -107,7 +116,14 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
 
   const onSaveGeneral = (data: GeneralFormValues) => {
     updateProject.mutate(
-      { id: project.id, data: { ...data, deadline: data.deadline || null } as any },
+      {
+        id: project.id,
+        data: {
+          ...data,
+          deadline: data.deadline || null,
+          status: data.status === "sign_off" ? "signed_off" : data.status,
+        } as any,
+      },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
@@ -233,6 +249,29 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
                         <FormLabel>Deadline</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} disabled={isSignedOff || !canManage} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={generalForm.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <FormControl>
+                          <select
+                            {...field}
+                            disabled={isSignedOff || !canManage}
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm disabled:opacity-50"
+                          >
+                            {STATUS_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

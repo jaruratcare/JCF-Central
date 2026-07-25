@@ -227,6 +227,7 @@ export const WorkItemType = {
   story: 'story',
   task: 'task',
   bug: 'bug',
+  subtask: 'subtask',
 } as const;
 
 export type WorkItemStatus = typeof WorkItemStatus[keyof typeof WorkItemStatus];
@@ -256,6 +257,8 @@ export interface WorkItem {
   sprintId?: number | null;
   /** @nullable */
   epicId?: number | null;
+  /** @nullable */
+  parentItemId?: number | null;
   type: WorkItemType;
   title: string;
   /** @nullable */
@@ -284,8 +287,7 @@ export const WorkItemInputType = {
   epic: 'epic',
   story: 'story',
   task: 'task',
-  bug: 'bug',
-} as const;
+  bug: 'bug',  subtask: 'subtask',} as const;
 
 export type WorkItemInputStatus = typeof WorkItemInputStatus[keyof typeof WorkItemInputStatus];
 
@@ -319,6 +321,7 @@ export interface WorkItemInput {
   dueDate?: string;
   sprintId?: number;
   epicId?: number;
+  parentItemId?: number;
 }
 
 export type WorkItemUpdateStatus = typeof WorkItemUpdateStatus[keyof typeof WorkItemUpdateStatus];
@@ -356,6 +359,8 @@ export interface WorkItemUpdate {
   sprintId?: number | null;
   /** @nullable */
   epicId?: number | null;
+  /** @nullable */
+  parentItemId?: number | null;
   sortOrder?: number;
 }
 

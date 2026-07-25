@@ -21,4 +21,6 @@ export interface WorkItemInput {
   dueDate?: string;
   sprintId?: number;
   epicId?: number;
+  /** ID of the parent work item. Required when type is subtask. */
+  parentItemId?: number;
 }

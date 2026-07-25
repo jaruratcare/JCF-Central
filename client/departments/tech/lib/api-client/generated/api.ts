@@ -2196,6 +2196,77 @@ export const useDeleteItem = <TError = ErrorType<unknown>,
       return useMutation(getDeleteItemMutationOptions(options));
     }
 
+  export const getGetItemChildrenUrl = (id: number,) => {
+
+
+
+
+  return `/api/items/${id}/children`
+}
+
+/**
+ * @summary Get direct children of a work item (stories under epic, tasks under story, subtasks under task)
+ */
+export const getItemChildren = async (id: number, options?: RequestInit): Promise<WorkItem[]> => {
+
+  return customFetch<WorkItem[]>(getGetItemChildrenUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetItemChildrenQueryKey = (id: number,) => {
+    return [
+    `/api/items/${id}/children`
+    ] as const;
+    }
+
+
+export const getGetItemChildrenQueryOptions = <TData = Awaited<ReturnType<typeof getItemChildren>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getItemChildren>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetItemChildrenQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getItemChildren>>> = ({ signal }) => getItemChildren(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getItemChildren>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetItemChildrenQueryResult = NonNullable<Awaited<ReturnType<typeof getItemChildren>>>
+export type GetItemChildrenQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get direct children of a work item (stories under epic, tasks under story, subtasks under task)
+ */
+
+export function useGetItemChildren<TData = Awaited<ReturnType<typeof getItemChildren>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getItemChildren>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetItemChildrenQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export const getListCommentsUrl = (itemId: number,) => {
 
 

@@ -21,4 +21,5 @@ export interface WorkItemInput {
   dueDate?: string;
   sprintId?: number;
   epicId?: number;
+  parentItemId?: number;
 }

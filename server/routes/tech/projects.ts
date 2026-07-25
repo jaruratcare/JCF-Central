@@ -11,6 +11,7 @@ import {
   GetProjectSummaryParams,
   SignOffProjectParams,
 } from "./api-zod";
+import { normalizeProjectStatus } from "./lib/normalizers";
 
 const router: IRouter = Router();
 
@@ -129,14 +130,16 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
 
   const existingRows = await sbSelect("projects", { id: `eq.${params.data.id}` });
   if (!existingRows[0]) { res.status(404).json({ error: "Project not found" }); return; }
-  if (existingRows[0].status === "signed_off") {
+  const existingStatus = normalizeProjectStatus(existingRows[0].status as string | undefined);
+  if (existingStatus === "signed_off") {
     res.status(409).json({ error: "Project is signed off and can no longer be edited" });
     return;
   }
 
-  // status is only ever changed via the dedicated sign-off endpoint
-  const { status: _status, ...updateFields } = parsed.data;
-  const row = await sbUpdate("projects", { id: `eq.${params.data.id}` }, toSnake(updateFields as Record<string, unknown>));
+  const { status, ...updateFields } = parsed.data;
+  const normalizedStatus = normalizeProjectStatus(status);
+  const payload = normalizedStatus ? { ...updateFields, status: normalizedStatus } : updateFields;
+  const row = await sbUpdate("projects", { id: `eq.${params.data.id}` }, toSnake(payload as Record<string, unknown>));
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
   res.json(toCamel(row));
 });

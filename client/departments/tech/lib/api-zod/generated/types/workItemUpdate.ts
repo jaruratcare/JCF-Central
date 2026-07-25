@@ -23,5 +23,10 @@ export interface WorkItemUpdate {
   sprintId?: number | null;
   /** @nullable */
   epicId?: number | null;
+  /**
+     * ID of the parent work item. Null to detach from a parent.
+     * @nullable
+     */
+  parentItemId?: number | null;
   sortOrder?: number;
 }

@@ -10,6 +10,8 @@ export type ProjectUpdateStatus = typeof ProjectUpdateStatus[keyof typeof Projec
 
 
 export const ProjectUpdateStatus = {
+  planning: 'planning',
   active: 'active',
-  signed_off: 'signed_off',
+  hold: 'hold',
+  sign_off: 'sign_off',
 } as const;

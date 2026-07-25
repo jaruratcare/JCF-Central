@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
-import { FolderKanban, Plus, CheckCircle2, Search, X } from "lucide-react";
+import { FolderKanban, Plus, CheckCircle2, Search, X, Rocket, PauseCircle, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useListProjects } from "@/departments/tech/lib/api-client";
 import { ProjectDialog } from "@/departments/tech/components/dialogs/project-dialog";
 import { format } from "date-fns";
@@ -31,8 +32,10 @@ export default function ProjectsList() {
   const { canCreateProject } = useOrg();
 
   const filtered = useMemo(() => (projects ?? []).filter((p) => matchesSearch(p, search)), [projects, search]);
-  const activeProjects = filtered.filter((p) => p.status !== "signed_off");
-  const signedOffProjects = filtered.filter((p) => p.status === "signed_off");
+  const planningProjects = filtered.filter((p) => (p.status as string) === "planning");
+  const activeProjects = filtered.filter((p) => (p.status as string) === "active");
+  const holdProjects = filtered.filter((p) => (p.status as string) === "hold");
+  const signOffProjects = filtered.filter((p) => (p.status as string) === "sign_off");
 
   return (
     <div className="space-y-6">
@@ -119,57 +122,114 @@ export default function ProjectsList() {
         </div>
       ) : (
         <>
-          {/* Active projects */}
-          {activeProjects.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {activeProjects.map((project) => (
-                <Link key={project.id} href={`/projects/${project.id}`}>
-                  <Card className="hover-elevate cursor-pointer transition-all border-l-4 border-l-primary h-full flex flex-col">
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl line-clamp-1" title={project.name}>{project.name}</CardTitle>
-                        <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded">
-                          {project.key}
-                        </span>
-                      </div>
-                      <CardDescription>Created {format(new Date(project.createdAt), 'MMM d, yyyy')}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {project.description || "No description provided."}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+          {/* Planning section */}
+          {planningProjects.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-slate-500" />
+                <h2 className="text-base font-semibold">Planning</h2>
+                <Badge variant="secondary" className="text-xs">{planningProjects.length}</Badge>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {planningProjects.map((project) => (
+                  <Link key={project.id} href={`/projects/${project.id}`}>
+                    <Card className="hover-elevate cursor-pointer transition-all border-l-4 border-l-slate-400 h-full flex flex-col">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-xl line-clamp-1" title={project.name}>{project.name}</CardTitle>
+                          <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded">{project.key}</span>
+                        </div>
+                        <CardDescription>Created {format(new Date(project.createdAt), 'MMM d, yyyy')}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <p className="text-sm text-muted-foreground line-clamp-2">{project.description || "No description provided."}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Completed / Signed Off section */}
-          {signedOffProjects.length > 0 && (
-            <div className="space-y-4 pt-4 border-t">
+          {/* Active section */}
+          {activeProjects.length > 0 && (
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <h2 className="text-lg font-semibold">Completed / Signed Off</h2>
-                <span className="text-sm text-muted-foreground">({signedOffProjects.length})</span>
+                <Rocket className="h-4 w-4 text-primary" />
+                <h2 className="text-base font-semibold">Active</h2>
+                <Badge variant="secondary" className="text-xs">{activeProjects.length}</Badge>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {signedOffProjects.map((project) => (
+                {activeProjects.map((project) => (
+                  <Link key={project.id} href={`/projects/${project.id}`}>
+                    <Card className="hover-elevate cursor-pointer transition-all border-l-4 border-l-primary h-full flex flex-col">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-xl line-clamp-1" title={project.name}>{project.name}</CardTitle>
+                          <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded">{project.key}</span>
+                        </div>
+                        <CardDescription>Created {format(new Date(project.createdAt), 'MMM d, yyyy')}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <p className="text-sm text-muted-foreground line-clamp-2">{project.description || "No description provided."}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* On Hold section */}
+          {holdProjects.length > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <PauseCircle className="h-4 w-4 text-amber-500" />
+                <h2 className="text-base font-semibold">On Hold</h2>
+                <Badge variant="secondary" className="text-xs">{holdProjects.length}</Badge>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {holdProjects.map((project) => (
+                  <Link key={project.id} href={`/projects/${project.id}`}>
+                    <Card className="hover-elevate cursor-pointer transition-all border-l-4 border-l-amber-400 h-full flex flex-col opacity-80">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-xl line-clamp-1" title={project.name}>{project.name}</CardTitle>
+                          <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded">{project.key}</span>
+                        </div>
+                        <CardDescription>Created {format(new Date(project.createdAt), 'MMM d, yyyy')}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <p className="text-sm text-muted-foreground line-clamp-2">{project.description || "No description provided."}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sign Off section */}
+          {signOffProjects.length > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-base font-semibold">Signed Off</h2>
+                <Badge variant="secondary" className="text-xs">{signOffProjects.length}</Badge>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {signOffProjects.map((project) => (
                   <Link key={project.id} href={`/projects/${project.id}`}>
                     <Card className="hover-elevate cursor-pointer transition-all border-l-4 border-l-emerald-500 h-full flex flex-col opacity-80">
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
                           <CardTitle className="text-xl line-clamp-1" title={project.name}>{project.name}</CardTitle>
-                          <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded">
-                            {project.key}
-                          </span>
+                          <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded">{project.key}</span>
                         </div>
                         <CardDescription>Created {format(new Date(project.createdAt), 'MMM d, yyyy')}</CardDescription>
                       </CardHeader>
                       <CardContent className="flex-1">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {project.description || "No description provided."}
-                        </p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{project.description || "No description provided."}</p>
                       </CardContent>
                     </Card>
                   </Link>
