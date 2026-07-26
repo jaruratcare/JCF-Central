@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { 
-  useGetItem, 
+  useGetItem,
   useUpdateItem,
   useDeleteItem,
   useListComments,
   useCreateComment,
+  useDeleteComment,
   useListProjectItems,
+  useGetProject,
   getGetItemQueryKey,
   getListCommentsQueryKey,
   getListProjectItemsQueryKey,
   getGetBacklogQueryKey,
+  getGetProjectQueryKey,
   useListSprints,
   getListSprintsQueryKey,
   useListProjectMembers,
@@ -97,10 +100,14 @@ export default function ItemDetail() {
   const { data: sprints } = useListSprints(projectId, { query: { enabled: !!projectId, queryKey: getListSprintsQueryKey(projectId) } });
   const { data: members } = useListProjectMembers(projectId, { query: { enabled: !!projectId, queryKey: getListProjectMembersQueryKey(projectId) } });
   const { data: allItems } = useListProjectItems(projectId, { query: { enabled: !!projectId, queryKey: getListProjectItemsQueryKey(projectId) } });
-  
+  const { data: project } = useGetProject(projectId, { query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) } });
+
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
   const createComment = useCreateComment();
+  const deleteComment = useDeleteComment();
+  // Server requires "editor" access to delete a comment — same rule as adding one.
+  const canDeleteComments = project?.accessLevel === "manage" || project?.accessLevel === "editor";
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -181,6 +188,14 @@ export default function ItemDetail() {
     }, {
       onSuccess: () => {
         setNewComment("");
+        queryClient.invalidateQueries({ queryKey: getListCommentsQueryKey(itemId) });
+      }
+    });
+  };
+
+  const handleDeleteComment = (commentId: number) => {
+    deleteComment.mutate({ id: commentId }, {
+      onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListCommentsQueryKey(itemId) });
       }
     });
@@ -442,11 +457,44 @@ export default function ItemDetail() {
                       <AvatarFallback>{comment.author.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-sm">{comment.author}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(comment.createdAt), 'MMM d, yyyy • h:mm a')}
-                        </span>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold text-sm">{comment.author}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(comment.createdAt), 'MMM d, yyyy • h:mm a')}
+                          </span>
+                        </div>
+                        {canDeleteComments && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete comment?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this comment. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  disabled={deleteComment.isPending}
+                                >
+                                  {deleteComment.isPending ? "Deleting…" : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                       <div className="text-sm bg-muted/30 p-3 rounded-md border border-border/50">
                         {comment.content}
