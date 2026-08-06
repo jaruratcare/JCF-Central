@@ -22,7 +22,7 @@ import HRDashboard from "./departments/hr/dashboard/Dashboard";
 import PsyConnectDashboard from "./departments/psy-connect/dashboard/Dashboard";
 import TechDashboard from "./departments/tech/dashboard/Dashboard";
 import PRDashboard from "./departments/pr/dashboard/Dashboard";
-import CarcinomaDashboard from "./departments/carcinoma/dashboard/Dashboard";
+import CarcinomeDashboard from "./departments/carcinome/dashboard/Dashboard";
 import MedicalPartnershipDashboard from "./departments/medical-partnership/dashboard/Dashboard";
 import CGMPDashboard from "./departments/cgmp/dashboard/Dashboard";
 
@@ -114,11 +114,11 @@ export default function App() {
                 />
 
                 <Route
-                  path="/departments/carcinoma"
+                  path="/departments/carcinome"
                   element={
                     <ProtectedRoute>
-                      <DepartmentGuard allowedDepartment="carcinoma">
-                        <CarcinomaDashboard />
+                      <DepartmentGuard allowedDepartment="carcinome">
+                        <CarcinomeDashboard />
                       </DepartmentGuard>
                     </ProtectedRoute>
                   }

@@ -12,25 +12,18 @@ import {
   DeleteItemParams,
 } from "./api-zod";
 import { normalizeItemFormPayload } from "./lib/normalizers";
+import { PARENT_TYPE_CONSTRAINTS } from "../../../shared/tech-constants";
 
 const router: IRouter = Router();
 
-/**
- * Hierarchy: epic → story → task → subtask
- * Maps each child type to its required parent type.
- */
-const REQUIRED_PARENT_TYPE: Record<string, string | undefined> = {
-  story:   "epic",
-  task:    "story",
-  subtask: "task",
-};
+
 
 /**
  * Validate that a parentItemId is consistent with the child type.
  * Returns an error string, or null if valid.
  */
 async function validateParent(childType: string, parentItemId: unknown): Promise<string | null> {
-  const requiredParentType = REQUIRED_PARENT_TYPE[childType];
+  const requiredParentType = PARENT_TYPE_CONSTRAINTS[childType];
 
   if (childType === "subtask" && !parentItemId) {
     return "parentItemId is required when type is 'subtask'";

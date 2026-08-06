@@ -1,4 +1,4 @@
-import { Layers, BookOpen, CheckSquare, Bug } from "lucide-react";
+import { Layers, BookOpen, CheckSquare, Bug, CornerDownRight } from "lucide-react";
 import { WorkItemType, WorkItemPriority, ProjectMember } from "@/departments/tech/lib/api-client";
 
 /** Resolves a work item's assigneeId to the matching project member's display name, if any. */
@@ -17,6 +17,7 @@ export const ItemTypeIcon = ({ type, className }: { type: WorkItemType, classNam
     case "story": return <BookOpen className={className} />;
     case "task": return <CheckSquare className={className} />;
     case "bug": return <Bug className={className} />;
+    case "subtask": return <CornerDownRight className={className} />;
     default: return <CheckSquare className={className} />;
   }
 };
@@ -27,6 +28,7 @@ export const getTypeColor = (type: WorkItemType) => {
     case "story": return "text-blue-500 bg-blue-500/10 border-blue-500/20";
     case "task": return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
     case "bug": return "text-red-500 bg-red-500/10 border-red-500/20";
+    case "subtask": return "text-teal-500 bg-teal-500/10 border-teal-500/20";
     default: return "text-gray-500 bg-gray-500/10 border-gray-500/20";
   }
 };

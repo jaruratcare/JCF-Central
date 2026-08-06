@@ -48,6 +48,7 @@ import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { ItemDialog } from "@/departments/tech/components/dialogs/item-dialog";
 import { Toggle } from "@/components/ui/toggle";
+import { PARENT_TYPE_CONSTRAINTS } from "@shared/tech-constants";
 
 
 /** Maps a parent type to its expected child type. */
@@ -59,14 +60,7 @@ const CHILD_TYPE_FOR: Record<string, string | null> = {
   subtask: null,
 };
 
-/** Maps each child type to its required parent type. */
-const PARENT_TYPE_FOR: Record<string, string | null> = {
-  epic:    null,
-  story:   "epic",
-  task:    "story",
-  bug:     null,
-  subtask: "task",
-};
+
 
 const STATUS_LABELS: Record<string, string> = {
   todo: "To Do",
@@ -212,7 +206,7 @@ export default function ItemDetail() {
     ? (allItems ?? []).find((i) => i.id === item.parentItemId)
     : null;
   const children = (allItems ?? []).filter((i) => i.parentItemId === item.id);
-  const allowedParentType = item?.type ? PARENT_TYPE_FOR[item.type] : null;
+  const allowedParentType = item?.type ? PARENT_TYPE_CONSTRAINTS[item.type] : null;
   const parentCandidates = allowedParentType
     ? (allItems ?? []).filter((candidate) => candidate.type === allowedParentType && candidate.id !== item?.id)
     : [];

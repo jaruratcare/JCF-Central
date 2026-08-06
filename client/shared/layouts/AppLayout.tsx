@@ -2,8 +2,15 @@ import React, { useState } from 'react';
 import { useAuth } from '@/auth/authContext';
 import { useTheme } from '@/theme/themeContext';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, Home, Settings } from 'lucide-react';
+import { Menu, X, LogOut, Home, Settings, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -27,7 +34,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:relative z-40 h-screen w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300
+          fixed lg:relative z-40 h-screen w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 flex flex-col
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         `}
       >
@@ -36,7 +43,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
           <p className="text-xs opacity-80 mt-1">Central Hub</p>
         </div>
 
-        <nav className="flex-1 p-6 space-y-2">
+        <nav className="flex-1 overflow-auto p-6 space-y-2">
           <button
             onClick={() => navigate(`/departments/${user?.department}`)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left hover:bg-sidebar-accent"
@@ -56,20 +63,40 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
           {secondaryNav}
         </nav>
 
-        <div className="p-6 space-y-3 border-t border-sidebar-border">
-          <div className="text-xs opacity-80">
-            <p className="font-medium">{user?.firstName} {user?.lastName}</p>
-            <p className="opacity-70 capitalize">{user?.department}</p>
-          </div>
-          <Button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+        <div className="border-t border-sidebar-border p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarFallback className="text-xs font-semibold bg-sidebar-primary text-sidebar-primary-foreground">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-[10px] text-sidebar-foreground/50 truncate capitalize">{user?.department}</p>
+                </div>
+                <ChevronDown className="h-3 w-3 flex-shrink-0 text-sidebar-foreground/40" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-52">
+              <div className="px-2 py-1.5">
+                <p className="text-xs font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                <p className="text-[11px] text-muted-foreground truncate capitalize">{user?.department}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
+
 
       {/* Overlay for mobile */}
       {sidebarOpen && (

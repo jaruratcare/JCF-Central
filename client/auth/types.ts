@@ -1,7 +1,7 @@
 export type Department = 
   | 'ceo-office'
   | 'pr'
-  | 'carcinoma'
+  | 'carcinome'
   | 'hr'
   | 'psy-connect'
   | 'tech'

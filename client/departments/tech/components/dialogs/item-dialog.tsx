@@ -21,15 +21,7 @@ import { useEffect } from "react";
 import { ItemTypeIcon, getTypeColor } from "../item-utils";
 import { useAuth } from "@/departments/tech/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-
-/** Which parent type is required/allowed for each child type. */
-const PARENT_TYPE_FOR: Record<string, string | null> = {
-  epic:    null,
-  story:   "epic",
-  task:    "story",
-  bug:     "task",
-  subtask: "task",
-};
+import { PARENT_TYPE_CONSTRAINTS } from "@shared/tech-constants";
 
 const itemSchema = z.object({
   type: z.enum(["epic", "story", "task", "bug", "subtask"]),
@@ -97,7 +89,7 @@ export function ItemDialog({
   });
 
   const watchedType = form.watch("type");
-  const parentTypeNeeded = PARENT_TYPE_FOR[watchedType] ?? null;
+  const parentTypeNeeded = PARENT_TYPE_CONSTRAINTS[watchedType] ?? null;
 
   // Filter parent candidates by the required parent type, excluding the item being edited
   const parentCandidates = parentTypeNeeded
@@ -142,7 +134,7 @@ export function ItemDialog({
   useEffect(() => {
     const currentParentId = form.getValues("parentItemId");
     if (!currentParentId) return;
-    const newParentType = PARENT_TYPE_FOR[watchedType];
+    const newParentType = PARENT_TYPE_CONSTRAINTS[watchedType];
     if (!newParentType) {
       form.setValue("parentItemId", null);
     } else {

@@ -26,6 +26,7 @@ import { CompleteSprintDialog, type Disposition, type IncompleteItem } from "@/d
 import { Skeleton } from "@/components/ui/skeleton";
 import { ItemTypeIcon, getTypeColor, resolveAssigneeName } from "@/departments/tech/components/item-utils";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_BADGE: Record<string, string> = {
   todo: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
@@ -38,6 +39,7 @@ export default function Sprints() {
   const { projectId: projectIdStr } = useParams<{ projectId: string }>();
   const projectId = parseInt(projectIdStr!);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: sprints, isLoading } = useListSprints(projectId, {
     query: { enabled: !!projectId, queryKey: getListSprintsQueryKey(projectId) },
@@ -104,6 +106,10 @@ export default function Sprints() {
       queryClient.invalidateQueries({ queryKey: getGetBacklogQueryKey(projectId) });
 
       setCompletingSprintId(null);
+      toast({ title: "Sprint completed", description: "Sprint has been successfully completed." });
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+      toast({ title: "Failed to complete sprint", description: msg, variant: "destructive" });
     } finally {
       setCompletePending(false);
     }
