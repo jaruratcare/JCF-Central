@@ -20,7 +20,7 @@ import { PaymentsView } from "../views/PaymentsView";
 import { ReportsView } from "../views/ReportsView";
 import { MasterDataView } from "../views/MasterDataView";
 import { AuditLogView } from "../views/AuditLogView";
-import { PatientDetailsModal } from "../views/PatientDetailsModal";
+import { PatientDetailsView } from "../views/PatientDetailsView";
 
 const NAVIGATION_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -35,6 +35,11 @@ const NAVIGATION_ITEMS = [
 
 function CarcinomeDashboardInner() {
   const { activeTab, setActiveTab, selectedPatientId, setSelectedPatientId } = useCarcinome();
+
+  const handleTabClick = (tabId: string) => {
+    setSelectedPatientId(null);
+    setActiveTab(tabId);
+  };
 
   return (
     <div className="space-y-6">
@@ -63,11 +68,11 @@ function CarcinomeDashboardInner() {
         <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
           {NAVIGATION_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = !selectedPatientId && activeTab === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabClick(item.id)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                   isActive
                     ? "bg-blue-600 text-white shadow-sm"
@@ -84,21 +89,24 @@ function CarcinomeDashboardInner() {
 
       {/* Main View Area */}
       <div>
-        {activeTab === "dashboard" && <OverviewDashboardView />}
-        {activeTab === "patients" && <PatientsView />}
-        {activeTab === "sessions" && <SessionsView />}
-        {activeTab === "tasks" && <TasksView />}
-        {activeTab === "payments" && <PaymentsView />}
-        {activeTab === "reports" && <ReportsView />}
-        {activeTab === "master-data" && <MasterDataView />}
-        {activeTab === "audit" && <AuditLogView />}
+        {selectedPatientId ? (
+          <PatientDetailsView
+            patientId={selectedPatientId}
+            onClose={() => setSelectedPatientId(null)}
+          />
+        ) : (
+          <>
+            {activeTab === "dashboard" && <OverviewDashboardView />}
+            {activeTab === "patients" && <PatientsView />}
+            {activeTab === "sessions" && <SessionsView />}
+            {activeTab === "tasks" && <TasksView />}
+            {activeTab === "payments" && <PaymentsView />}
+            {activeTab === "reports" && <ReportsView />}
+            {activeTab === "master-data" && <MasterDataView />}
+            {activeTab === "audit" && <AuditLogView />}
+          </>
+        )}
       </div>
-
-      {/* Patient Details Modal */}
-      <PatientDetailsModal
-        patientId={selectedPatientId}
-        onClose={() => setSelectedPatientId(null)}
-      />
     </div>
   );
 }
