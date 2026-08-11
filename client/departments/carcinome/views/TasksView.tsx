@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CheckSquare, Plus, Filter, Clock, AlertTriangle, CheckCircle2, User, Trash2 } from "lucide-react";
+import { CheckSquare, Plus, Filter, Clock, AlertTriangle, CheckCircle2, User, Trash2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,29 @@ export const TasksView: React.FC = () => {
 
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<Task["status"] | null>(null);
 
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [internFilter, setInternFilter] = useState<string>("all");
+
+  const handleDragStart = (taskId: string) => (event: React.DragEvent<HTMLDivElement>) => {
+    setDraggingTaskId(taskId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingTaskId(null);
+    setDragOverStatus(null);
+  };
+
+  const handleDrop = (status: Task["status"]) => {
+    if (!draggingTaskId) return;
+    updateTaskStatus(draggingTaskId, status);
+    setDraggingTaskId(null);
+    setDragOverStatus(null);
+  };
 
   const interns = masterData.filter((m) => m.category === "Assignee" && m.active);
 
@@ -126,7 +146,19 @@ export const TasksView: React.FC = () => {
       {viewMode === "kanban" ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Column 1: Pending */}
-          <div className="space-y-3">
+          <section
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragOverStatus("Pending");
+            }}
+            onDragLeave={() => setDragOverStatus(null)}
+            onDrop={() => handleDrop("Pending")}
+            className={`space-y-3 rounded-2xl transition-all ${
+              dragOverStatus === "Pending"
+                ? "ring-2 ring-amber-400/80 bg-amber-50/70"
+                : "bg-transparent"
+            }`}
+          >
             <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-lg">
               <span className="font-semibold text-xs text-amber-900 dark:text-amber-300 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-amber-600" /> Pending ({pendingTasks.length})
@@ -134,13 +166,33 @@ export const TasksView: React.FC = () => {
             </div>
             <div className="space-y-3 min-h-[300px]">
               {pendingTasks.map((t) => (
-                <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus} onDelete={deleteTask} />
+                <TaskCard
+                  key={t.id}
+                  task={t}
+                  onStatusChange={updateTaskStatus}
+                  onDelete={deleteTask}
+                  draggable
+                  onDragStart={handleDragStart(t.id)}
+                  onDragEnd={handleDragEnd}
+                />
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Column 2: In Progress */}
-          <div className="space-y-3">
+          <section
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragOverStatus("In Progress");
+            }}
+            onDragLeave={() => setDragOverStatus(null)}
+            onDrop={() => handleDrop("In Progress")}
+            className={`space-y-3 rounded-2xl transition-all ${
+              dragOverStatus === "In Progress"
+                ? "ring-2 ring-blue-400/80 bg-blue-50/60"
+                : "bg-transparent"
+            }`}
+          >
             <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-lg">
               <span className="font-semibold text-xs text-blue-900 dark:text-blue-300 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-blue-600" /> In Progress ({inProgressTasks.length})
@@ -148,13 +200,33 @@ export const TasksView: React.FC = () => {
             </div>
             <div className="space-y-3 min-h-[300px]">
               {inProgressTasks.map((t) => (
-                <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus} onDelete={deleteTask} />
+                <TaskCard
+                  key={t.id}
+                  task={t}
+                  onStatusChange={updateTaskStatus}
+                  onDelete={deleteTask}
+                  draggable
+                  onDragStart={handleDragStart(t.id)}
+                  onDragEnd={handleDragEnd}
+                />
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Column 3: Completed */}
-          <div className="space-y-3">
+          <section
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragOverStatus("Completed");
+            }}
+            onDragLeave={() => setDragOverStatus(null)}
+            onDrop={() => handleDrop("Completed")}
+            className={`space-y-3 rounded-2xl transition-all ${
+              dragOverStatus === "Completed"
+                ? "ring-2 ring-emerald-400/80 bg-emerald-50/70"
+                : "bg-transparent"
+            }`}
+          >
             <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 rounded-lg">
               <span className="font-semibold text-xs text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Completed ({completedTasks.length})
@@ -162,10 +234,18 @@ export const TasksView: React.FC = () => {
             </div>
             <div className="space-y-3 min-h-[300px]">
               {completedTasks.map((t) => (
-                <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus} onDelete={deleteTask} />
+                <TaskCard
+                  key={t.id}
+                  task={t}
+                  onStatusChange={updateTaskStatus}
+                  onDelete={deleteTask}
+                  draggable
+                  onDragStart={handleDragStart(t.id)}
+                  onDragEnd={handleDragEnd}
+                />
               ))}
             </div>
-          </div>
+          </section>
         </div>
       ) : (
         /* LIST VIEW */
@@ -231,27 +311,41 @@ function TaskCard({
   task,
   onStatusChange,
   onDelete,
+  draggable = false,
+  onDragStart,
+  onDragEnd,
 }: {
   task: Task;
   onStatusChange: (id: string, status: Task["status"]) => void;
   onDelete: (id: string) => void;
+  draggable?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
 }) {
   return (
-    <Card className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
+    <Card
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow"
+    >
       <CardContent className="p-3.5 space-y-2 text-xs">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-900">
             {task.category}
           </Badge>
-          <Badge
-            className={
-              task.priority === "High"
-                ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 text-[10px]"
-                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-[10px]"
-            }
-          >
-            {task.priority}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              className={
+                task.priority === "High"
+                  ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 text-[10px]"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-[10px]"
+              }
+            >
+              {task.priority}
+            </Badge>
+            {draggable && <GripVertical className="h-4 w-4 text-slate-400" />}
+          </div>
         </div>
 
         <div className="font-semibold text-slate-900 dark:text-slate-100 text-xs">{task.title}</div>

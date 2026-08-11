@@ -19,6 +19,8 @@ export const SessionsView: React.FC = () => {
 
   const [search, setSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const allSessions = useMemo(() => {
     return patients.flatMap((p) =>
@@ -46,6 +48,43 @@ export const SessionsView: React.FC = () => {
       return matchesSearch && matchesPayment;
     });
   }, [allSessions, search, paymentFilter]);
+
+  const sortedSessions = useMemo(() => {
+    const sorted = [...filteredSessions];
+
+    const compareText = (a: string | undefined, b: string | undefined) => {
+      return String(a || "").localeCompare(String(b || ""), "en-IN", {
+        sensitivity: "base",
+      });
+    };
+
+    sorted.sort((first, second) => {
+      let result = 0;
+      switch (sortBy) {
+        case "patient":
+          result = compareText(first.patientName, second.patientName);
+          break;
+        case "nurse":
+          result = compareText(first.nurse, second.nurse);
+          break;
+        case "supplier":
+          result = compareText(first.supplier, second.supplier);
+          break;
+        case "amount":
+          result = (first.totalAmount || 0) - (second.totalAmount || 0);
+          break;
+        case "payment":
+          result = compareText(first.paymentStatus, second.paymentStatus);
+          break;
+        case "date":
+        default:
+          result = new Date(first.date).getTime() - new Date(second.date).getTime();
+      }
+      return sortDirection === "asc" ? result : -result;
+    });
+
+    return sorted;
+  }, [filteredSessions, sortBy, sortDirection]);
 
   const totalSessionsCount = allSessions.length;
   const completedPaidCount = allSessions.filter((s) => s.paymentStatus === "Paid").length;
@@ -113,7 +152,7 @@ export const SessionsView: React.FC = () => {
       {/* Filter Bar */}
       <Card className="border-slate-200 dark:border-slate-800">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="relative sm:col-span-2">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
@@ -136,6 +175,30 @@ export const SessionsView: React.FC = () => {
                 <SelectItem value="Insurance Processing">Insurance Processing</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="patient">Patient</SelectItem>
+                <SelectItem value="nurse">Nurse</SelectItem>
+                <SelectItem value="supplier">Supplier</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+                <SelectItem value="payment">Payment Status</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortDirection} onValueChange={(val) => setSortDirection(val as "asc" | "desc") }>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Newest / Highest</SelectItem>
+                <SelectItem value="asc">Oldest / Lowest</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -156,14 +219,14 @@ export const SessionsView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredSessions.length === 0 ? (
+              {sortedSessions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-500">
                     No matching infusion sessions found.
                   </td>
                 </tr>
               ) : (
-                filteredSessions.map((s, idx) => (
+                sortedSessions.map((s, idx) => (
                   <tr
                     key={idx}
                     onClick={() => {

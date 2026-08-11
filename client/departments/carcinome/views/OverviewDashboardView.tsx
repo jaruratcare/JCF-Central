@@ -103,6 +103,27 @@ export const OverviewDashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Quick KPI Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs text-slate-500">Total Registered</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{patients.length}</div>
+          <div className="text-xs text-slate-400 mt-1">All time registry count</div>
+        </div>
+
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs text-slate-500">Active Patients</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{activePatients.length}</div>
+          <div className="text-xs text-slate-400 mt-1">Currently in treatment or follow-up</div>
+        </div>
+
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="text-xs text-slate-500">Pending Payments</div>
+          <div className="text-2xl font-bold text-amber-600 dark:text-amber-300">{pendingPayments.length}</div>
+          <div className="text-xs text-slate-400 mt-1">Patients with outstanding balances</div>
+        </div>
+      </div>
+
       {/* 4 Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">

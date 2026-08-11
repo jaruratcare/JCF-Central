@@ -34,54 +34,54 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:relative z-40 h-screen w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 flex flex-col
+          fixed lg:relative z-40 h-screen w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 flex flex-col shadow-lg
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         `}
       >
-        <div className="p-6 border-b border-sidebar-border">
+        <div className="p-6 border-b border-sidebar-border bg-gradient-to-r from-blue-700 to-blue-600">
           <h1 className="text-2xl font-bold">JCF</h1>
-          <p className="text-xs opacity-80 mt-1">Central Hub</p>
+          <p className="text-xs opacity-90 mt-1">Central Hub</p>
         </div>
 
-        <nav className="flex-1 overflow-auto p-6 space-y-2">
+        <nav className="flex-1 overflow-auto p-4 space-y-1">
           <button
             onClick={() => navigate(`/departments/${user?.department}`)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left hover:bg-sidebar-accent"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left text-sm font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <Home className="w-5 h-5" />
-            <span className="text-sm font-medium">Dashboard</span>
+            <span>Dashboard</span>
           </button>
 
           <button
             onClick={() => navigate('/settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left hover:bg-sidebar-accent"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left text-sm font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <Settings className="w-5 h-5" />
-            <span className="text-sm font-medium">Settings</span>
+            <span>Settings</span>
           </button>
 
           {secondaryNav}
         </nav>
 
-        <div className="border-t border-sidebar-border p-3">
+        <div className="border-t border-sidebar-border p-4 bg-gradient-to-t from-blue-900/50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left">
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarFallback className="text-xs font-semibold bg-sidebar-primary text-sidebar-primary-foreground">
+              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent/30 transition-all text-left">
+                <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-sidebar-accent">
+                  <AvatarFallback className="text-xs font-bold bg-sidebar-primary text-sidebar-primary-foreground">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.firstName} {user?.lastName}</p>
-                  <p className="text-[10px] text-sidebar-foreground/50 truncate capitalize">{user?.department}</p>
+                  <p className="text-xs font-semibold text-sidebar-foreground truncate">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-[10px] text-sidebar-foreground/70 truncate capitalize">{user?.department}</p>
                 </div>
-                <ChevronDown className="h-3 w-3 flex-shrink-0 text-sidebar-foreground/40" />
+                <ChevronDown className="h-3 w-3 flex-shrink-0 text-sidebar-foreground/60" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="w-52">
               <div className="px-2 py-1.5">
-                <p className="text-xs font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                <p className="text-xs font-semibold truncate">{user?.firstName} {user?.lastName}</p>
                 <p className="text-[11px] text-muted-foreground truncate capitalize">{user?.department}</p>
               </div>
               <DropdownMenuSeparator />
