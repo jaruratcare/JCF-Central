@@ -1,22 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
-  Filter,
   Plus,
-  User,
-  Stethoscope,
-  Phone,
-  Eye,
-  Edit,
-  Trash2,
-  Archive,
-  ChevronRight,
-  MoreVertical,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -28,8 +19,45 @@ import { useCarcinome } from "../context/CarcinomeContext";
 import { AddEditPatientModal } from "../modals/AddEditPatientModal";
 import type { Patient } from "../data/dummy-data";
 
+const AutoResizingNoteInput: React.FC<{
+  value: string;
+  onChange: (val: string) => void;
+}> = ({ value, onChange }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustHeight = () => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${Math.max(38, el.scrollHeight)}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value);
+        adjustHeight();
+      }}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      onFocus={(e) => e.stopPropagation()}
+      placeholder="Add patient coordination note..."
+      rows={1}
+      className="w-full min-h-[38px] resize-none overflow-hidden rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50/70 focus:bg-white dark:bg-slate-900 p-2 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all leading-relaxed"
+    />
+  );
+};
+
 export const PatientsView: React.FC = () => {
-  const { patients, masterData, setSelectedPatientId, deletePatient, archivePatient } = useCarcinome();
+  const navigate = useNavigate();
+  const { patients, masterData, updatePatient } = useCarcinome();
 
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
@@ -71,7 +99,7 @@ export const PatientsView: React.FC = () => {
             Patients Directory
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage active treatment profiles, medical history, assign interns & monitor payment statuses.
+            Manage active treatment profiles, leave notes, assign interns & monitor payment statuses.
           </p>
         </div>
         <Button
@@ -159,7 +187,7 @@ export const PatientsView: React.FC = () => {
                 <th className="p-3.5">Assigned Intern</th>
                 <th className="p-3.5">Next Session</th>
                 <th className="p-3.5">Payment Status</th>
-                <th className="p-3.5 text-right">Actions</th>
+                <th className="p-3.5 min-w-[260px] w-72">Note</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -173,12 +201,12 @@ export const PatientsView: React.FC = () => {
                 filteredPatients.map((patient) => (
                   <tr
                     key={patient.id}
-                    onClick={() => setSelectedPatientId(patient.id)}
+                    onClick={() => navigate(`/departments/carcinome/patients/${patient.id}`)}
                     className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer group"
                   >
                     {/* Patient ID & Name */}
                     <td className="p-3.5">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 transition-colors">
                         {patient.name}
                       </div>
                       <div className="text-[11px] text-slate-500 font-mono mt-0.5">
@@ -217,16 +245,28 @@ export const PatientsView: React.FC = () => {
 
                     {/* Next Session */}
                     <td className="p-3.5">
-                      {patient.nextInfusionDate ? (
-                        <span className="font-semibold text-blue-700 dark:text-blue-300">
-                          {new Date(patient.nextInfusionDate).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
+                      {(() => {
+                        const targetDate =
+                          patient.nextInfusionDate ||
+                          (patient.sessions.length > 0 ? patient.sessions[patient.sessions.length - 1].date : null);
+                        if (!targetDate) return <span className="text-slate-400">—</span>;
+                        try {
+                          const parsed = new Date(targetDate);
+                          if (isNaN(parsed.getTime())) {
+                            return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
+                          }
+                          return (
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">
+                              {parsed.toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </span>
+                          );
+                        } catch {
+                          return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
+                        }
+                      })()}
                     </td>
 
                     {/* Payment Status */}
@@ -244,38 +284,12 @@ export const PatientsView: React.FC = () => {
                       </Badge>
                     </td>
 
-                    {/* Actions */}
-                    <td className="p-3.5 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-blue-600"
-                        onClick={() => setSelectedPatientId(patient.id)}
-                        title="View Profile Details"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-slate-600"
-                        onClick={() => {
-                          setPatientToEdit(patient);
-                          setAddModalOpen(true);
-                        }}
-                        title="Edit Patient"
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-600"
-                        onClick={() => deletePatient(patient.id)}
-                        title="Delete Patient"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    {/* Note Column */}
+                    <td className="p-3.5 min-w-[260px] w-72" onClick={(e) => e.stopPropagation()}>
+                      <AutoResizingNoteInput
+                        value={patient.coordinationNotes || ""}
+                        onChange={(val) => updatePatient(patient.id, { coordinationNotes: val })}
+                      />
                     </td>
                   </tr>
                 ))

@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   Calendar,
@@ -29,7 +30,8 @@ function fmtMoney(v: number | null) {
 }
 
 export const OverviewDashboardView: React.FC = () => {
-  const { patients, tasks, auditLogs, setActiveTab, setSelectedPatientId, updateTaskStatus } = useCarcinome();
+  const navigate = useNavigate();
+  const { patients, tasks, auditLogs, updateTaskStatus } = useCarcinome();
 
   const activePatients = patients.filter(
     (p) => p.onboardingStatus === "Active" || p.onboardingStatus === "Treatment completed"
@@ -42,17 +44,74 @@ export const OverviewDashboardView: React.FC = () => {
     .filter((s) => s.paymentStatus !== "Paid")
     .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
-  const upcomingSessions = patients
-    .filter((p) => p.nextInfusionDate)
-    .map((p) => ({
-      patientId: p.id,
-      patientName: p.name,
-      doctor: p.assignedDoctor,
-      nurse: p.assignedNurse,
-      date: p.nextInfusionDate!,
-      status: p.infusionStatus,
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Helper to check if a date string falls in the current week (Mon-Sun)
+  const isCurrentWeek = (dateStr: string | null | undefined) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const distanceToMonday = (dayOfWeek + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distanceToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return d >= monday && d <= sunday;
+  };
+
+  const thisWeekSessions = React.useMemo(() => {
+    const list: Array<{
+      patientId: string;
+      patientName: string;
+      doctor: string;
+      nurse: string | null;
+      date: string;
+      status: string;
+    }> = [];
+
+    const seenKey = new Set<string>();
+
+    patients.forEach((p) => {
+      if (p.nextInfusionDate && isCurrentWeek(p.nextInfusionDate)) {
+        const key = `${p.id}-${p.nextInfusionDate}`;
+        if (!seenKey.has(key)) {
+          seenKey.add(key);
+          list.push({
+            patientId: p.id,
+            patientName: p.name,
+            doctor: p.assignedDoctor,
+            nurse: p.assignedNurse,
+            date: p.nextInfusionDate,
+            status: p.infusionStatus,
+          });
+        }
+      }
+
+      p.sessions.forEach((s) => {
+        if (s.date && isCurrentWeek(s.date)) {
+          const key = `${p.id}-${s.date}`;
+          if (!seenKey.has(key)) {
+            seenKey.add(key);
+            list.push({
+              patientId: p.id,
+              patientName: p.name,
+              doctor: p.assignedDoctor,
+              nurse: s.nurse || p.assignedNurse,
+              date: s.date,
+              status: p.infusionStatus,
+            });
+          }
+        }
+      });
+    });
+
+    return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [patients]);
 
   const tasksDueToday = tasks.filter((t) => t.status !== "Completed");
 
@@ -88,14 +147,14 @@ export const OverviewDashboardView: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <Button
-            onClick={() => setActiveTab("patients")}
+            onClick={() => navigate("/departments/carcinome/patients")}
             className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm"
           >
             <Plus className="h-4 w-4" /> Add / Manage Patients
           </Button>
           <Button
             variant="outline"
-            onClick={() => setActiveTab("tasks")}
+            onClick={() => navigate("/departments/carcinome/tasks")}
             className="gap-2 bg-white dark:bg-slate-900"
           >
             <CheckSquare className="h-4 w-4" /> View Tasks ({tasksDueToday.length})
@@ -149,7 +208,7 @@ export const OverviewDashboardView: React.FC = () => {
         <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-              Upcoming Infusions
+              Infusions This Week
             </CardTitle>
             <div className="p-2 bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-lg">
               <Calendar className="h-5 w-5" />
@@ -157,10 +216,10 @@ export const OverviewDashboardView: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {upcomingSessions.length}
+              {thisWeekSessions.length}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Next schedule confirmed
+              Scheduled for current week
             </p>
           </CardContent>
         </Card>
@@ -214,32 +273,31 @@ export const OverviewDashboardView: React.FC = () => {
               <div>
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  Upcoming Infusion Sessions
+                  This Week's Infusion Sessions
                 </CardTitle>
-                <CardDescription>Scheduled chemotherapy & treatment rotations</CardDescription>
+                <CardDescription>Scheduled chemotherapy & treatment rotations for the current week</CardDescription>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-xs text-blue-600 dark:text-blue-400 gap-1"
-                onClick={() => setActiveTab("sessions")}
+                onClick={() => navigate("/departments/carcinome/sessions")}
               >
                 All Sessions <ArrowUpRight className="h-3.5 w-3.5" />
               </Button>
             </CardHeader>
             <CardContent>
-              {upcomingSessions.length === 0 ? (
+              {thisWeekSessions.length === 0 ? (
                 <div className="py-8 text-center text-sm text-slate-500">
-                  No upcoming infusion sessions scheduled.
+                  No infusion sessions scheduled for the current week.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {upcomingSessions.slice(0, 5).map((session, idx) => (
+                  {thisWeekSessions.map((session, idx) => (
                     <div
                       key={idx}
                       onClick={() => {
-                        setSelectedPatientId(session.patientId);
-                        setActiveTab("patients");
+                        navigate(`/departments/carcinome/patients/${session.patientId}`);
                       }}
                       className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-lg hover:bg-blue-50/50 dark:hover:bg-blue-950/20 border border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
                     >
@@ -287,7 +345,7 @@ export const OverviewDashboardView: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 className="text-xs text-indigo-600 dark:text-indigo-400 gap-1"
-                onClick={() => setActiveTab("tasks")}
+                onClick={() => navigate("/departments/carcinome/tasks")}
               >
                 Task Board <ArrowUpRight className="h-3.5 w-3.5" />
               </Button>
@@ -430,7 +488,7 @@ export const OverviewDashboardView: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 className="text-xs text-slate-500 gap-1"
-                onClick={() => setActiveTab("audit")}
+                onClick={() => navigate("/departments/carcinome/audit")}
               >
                 Full Log <ArrowUpRight className="h-3 w-3" />
               </Button>

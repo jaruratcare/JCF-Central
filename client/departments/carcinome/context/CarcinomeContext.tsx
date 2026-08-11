@@ -1,11 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
-  patients as initialPatients,
-  initialTasks,
-  initialMasterData,
-  initialAuditLogs,
-  initialDocuments,
-  initialNotes,
   type Patient,
   type InfusionSession,
   type Task,
@@ -27,131 +21,107 @@ interface CarcinomeContextType {
   setSelectedPatientId: (id: string | null) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  loading: boolean;
+  error: string | null;
+  refreshData: () => Promise<void>;
 
   // Patient CRUD
-  addPatient: (data: Omit<Patient, "id" | "sessions"> & { id?: string }) => void;
-  updatePatient: (id: string, updates: Partial<Patient>) => void;
-  deletePatient: (id: string) => void;
-  archivePatient: (id: string) => void;
+  addPatient: (data: Omit<Patient, "id" | "sessions"> & { id?: string }) => Promise<void>;
+  updatePatient: (id: string, updates: Partial<Patient>) => Promise<void>;
+  deletePatient: (id: string) => Promise<void>;
+  archivePatient: (id: string) => Promise<void>;
 
   // Session CRUD
-  addSession: (patientId: string, session: InfusionSession) => void;
-  updateSession: (patientId: string, sessionIndex: number, session: InfusionSession) => void;
-  deleteSession: (patientId: string, sessionIndex: number) => void;
+  addSession: (patientId: string, session: InfusionSession) => Promise<void>;
+  updateSession: (patientId: string, sessionIndex: number, session: InfusionSession) => Promise<void>;
+  deleteSession: (patientId: string, sessionIndex: number) => Promise<void>;
 
   // Payment Status
-  updatePaymentStatus: (patientId: string, paymentStatus: PaymentStatus, sessionIndex?: number) => void;
+  updatePaymentStatus: (patientId: string, paymentStatus: PaymentStatus, sessionIndex?: number) => Promise<void>;
 
   // Task CRUD
-  addTask: (task: Omit<Task, "id">) => void;
-  updateTaskStatus: (taskId: string, status: Task["status"]) => void;
-  deleteTask: (taskId: string) => void;
+  addTask: (task: Omit<Task, "id">) => Promise<void>;
+  updateTaskStatus: (taskId: string, status: Task["status"]) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
 
   // Master Data CRUD
-  addMasterItem: (item: Omit<MasterDataItem, "id" | "active">) => void;
-  toggleMasterItem: (id: string) => void;
+  addMasterItem: (item: Omit<MasterDataItem, "id" | "active">) => Promise<void>;
+  toggleMasterItem: (id: string) => Promise<void>;
 
   // Notes & Documents
-  addNote: (patientId: string, content: string) => void;
-  addDocument: (patientId: string, file: { name: string; fileType: "pdf" | "image" | "doc"; size: string }) => void;
+  addNote: (patientId: string, content: string) => Promise<void>;
+  addDocument: (patientId: string, file: { name: string; fileType: "pdf" | "image" | "doc"; size: string }) => Promise<void>;
 }
 
 const CarcinomeContext = createContext<CarcinomeContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  PATIENTS: "carcinome_patients_v2",
-  TASKS: "carcinome_tasks_v2",
-  MASTER: "carcinome_master_v2",
-  LOGS: "carcinome_logs_v2",
-  DOCS: "carcinome_docs_v2",
-  NOTES: "carcinome_notes_v2",
-};
-
 export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [patients, setPatients] = useState<Patient[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PATIENTS);
-      return saved ? JSON.parse(saved) : initialPatients;
-    } catch {
-      return initialPatients;
-    }
-  });
-
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.TASKS);
-      return saved ? JSON.parse(saved) : initialTasks;
-    } catch {
-      return initialTasks;
-    }
-  });
-
-  const [masterData, setMasterData] = useState<MasterDataItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.MASTER);
-      return saved ? JSON.parse(saved) : initialMasterData;
-    } catch {
-      return initialMasterData;
-    }
-  });
-
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.LOGS);
-      return saved ? JSON.parse(saved) : initialAuditLogs;
-    } catch {
-      return initialAuditLogs;
-    }
-  });
-
-  const [documents, setDocuments] = useState<PatientDocument[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.DOCS);
-      return saved ? JSON.parse(saved) : initialDocuments;
-    } catch {
-      return initialDocuments;
-    }
-  });
-
-  const [notes, setNotes] = useState<PatientNote[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.NOTES);
-      return saved ? JSON.parse(saved) : initialNotes;
-    } catch {
-      return initialNotes;
-    }
-  });
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [masterData, setMasterData] = useState<MasterDataItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [documents, setDocuments] = useState<PatientDocument[]>([]);
+  const [notes, setNotes] = useState<PatientNote[]>([]);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
 
-  // LocalStorage Syncing
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
-  }, [patients]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch all live data from Supabase API
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let pRes = await fetch("/api/carcinome/patients");
+      
+      if (!pRes.ok) {
+        console.warn("Carcinome DB tables missing or empty. Running auto-migration...");
+        await fetch("/api/carcinome/migrate", { method: "POST" });
+        pRes = await fetch("/api/carcinome/patients");
+      }
+
+      const pData = await pRes.json();
+      
+      if (Array.isArray(pData.patients) && pData.patients.length === 0) {
+        console.info("Database empty, running initial seed migration...");
+        await fetch("/api/carcinome/migrate", { method: "POST" });
+        const retryRes = await fetch("/api/carcinome/patients");
+        const retryData = await retryRes.json();
+        setPatients(retryData.patients || []);
+      } else {
+        setPatients(pData.patients || []);
+      }
+
+      const [tRes, mdRes, nRes, dRes, aRes] = await Promise.all([
+        fetch("/api/carcinome/tasks"),
+        fetch("/api/carcinome/master-data"),
+        fetch("/api/carcinome/notes"),
+        fetch("/api/carcinome/documents"),
+        fetch("/api/carcinome/audit-logs"),
+      ]);
+
+      if (tRes.ok) setTasks((await tRes.json()).tasks || []);
+      if (mdRes.ok) setMasterData((await mdRes.json()).masterData || []);
+      if (nRes.ok) setNotes((await nRes.json()).notes || []);
+      if (dRes.ok) setDocuments((await dRes.json()).documents || []);
+      if (aRes.ok) setAuditLogs((await aRes.json()).auditLogs || []);
+
+    } catch (err: any) {
+      console.error("Failed to load Carcinome database data:", err);
+      setError(err.message || "Failed to load database");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-  }, [tasks]);
+    refreshData();
+  }, [refreshData]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MASTER, JSON.stringify(masterData));
-  }, [masterData]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(auditLogs));
-  }, [auditLogs]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.DOCS, JSON.stringify(documents));
-  }, [documents]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notes));
-  }, [notes]);
-
-  // Audit Log Helper
-  const logAction = (
+  // Helper to persist audit logs to DB
+  const logAction = async (
     action: AuditLogEntry["action"],
     targetType: AuditLogEntry["targetType"],
     targetId: string,
@@ -159,7 +129,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     details: string,
     changes?: AuditLogEntry["changes"]
   ) => {
-    const newEntry: AuditLogEntry = {
+    const entry: Partial<AuditLogEntry> = {
       id: `LOG-${Date.now().toString().slice(-5)}`,
       timestamp: new Date().toISOString().replace("T", " ").slice(0, 16),
       actor: "Team Lead",
@@ -171,268 +141,345 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       details,
       changes,
     };
-    setAuditLogs((prev) => [newEntry, ...prev]);
-  };
-
-  // Patients CRUD
-  const addPatient = (data: Omit<Patient, "id" | "sessions"> & { id?: string }) => {
-    const id = data.id || `CC2026${(patients.length + 1).toString().padStart(3, "0")}`;
-    const newPatient: Patient = {
-      ...data,
-      id,
-      sessions: [],
-    };
-    setPatients((prev) => [newPatient, ...prev]);
-    logAction("CREATE", "Patient", id, data.name, `Created new patient profile for ${data.name}`);
-  };
-
-  const updatePatient = (id: string, updates: Partial<Patient>) => {
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const updated = { ...p, ...updates };
-          logAction(
-            "UPDATE",
-            "Patient",
-            id,
-            p.name,
-            `Updated patient details for ${p.name}`,
-            Object.keys(updates).map((key) => ({
-              field: key,
-              oldVal: String((p as any)[key] ?? "—"),
-              newVal: String((updates as any)[key] ?? "—"),
-            }))
-          );
-          return updated;
+    try {
+      const res = await fetch("/api/carcinome/audit-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.auditLog) {
+          setAuditLogs((prev) => [data.auditLog, ...prev]);
         }
-        return p;
-      })
-    );
-  };
-
-  const deletePatient = (id: string) => {
-    const target = patients.find((p) => p.id === id);
-    setPatients((prev) => prev.filter((p) => p.id !== id));
-    if (selectedPatientId === id) setSelectedPatientId(null);
-    if (target) {
-      logAction("DELETE", "Patient", id, target.name, `Deleted patient ${target.name}`);
+      }
+    } catch (e) {
+      console.error("Failed to persist audit log", e);
     }
   };
 
-  const archivePatient = (id: string) => {
-    updatePatient(id, { onboardingStatus: "No longer with the organisation" });
-    logAction("STATUS_CHANGE", "Patient", id, id, `Archived patient profile ${id}`);
+  // Patients CRUD
+  const addPatient = async (data: Omit<Patient, "id" | "sessions"> & { id?: string }) => {
+    try {
+      const res = await fetch("/api/carcinome/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to add patient");
+      const result = await res.json();
+      if (result.patient) {
+        setPatients((prev) => [result.patient, ...prev]);
+        logAction("CREATE", "Patient", result.patient.id, result.patient.name, `Created patient profile for ${result.patient.name}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const updatePatient = async (id: string, updates: Partial<Patient>) => {
+    setPatients((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/carcinome/patients/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.patient) {
+          setPatients((prev) =>
+            prev.map((p) => (p.id === id ? result.patient : p))
+          );
+          logAction("UPDATE", "Patient", id, result.patient.name, `Updated patient profile for ${result.patient.name}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
+  };
+
+  const deletePatient = async (id: string) => {
+    const target = patients.find((p) => p.id === id);
+    setPatients((prev) => prev.filter((p) => p.id !== id));
+    if (selectedPatientId === id) setSelectedPatientId(null);
+
+    try {
+      await fetch(`/api/carcinome/patients/${id}`, { method: "DELETE" });
+      if (target) {
+        logAction("DELETE", "Patient", id, target.name, `Deleted patient ${target.name}`);
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
+  };
+
+  const archivePatient = async (id: string) => {
+    await updatePatient(id, { onboardingStatus: "No longer with the organisation" });
   };
 
   // Session CRUD
-  const addSession = (patientId: string, session: InfusionSession) => {
+  const addSession = async (patientId: string, session: InfusionSession) => {
+    // Optimistic UI update
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
           const newSessions = [...p.sessions, session];
-          logAction(
-            "CREATE",
-            "Session",
-            patientId,
-            p.name,
-            `Added infusion session on ${session.date} for ${p.name}`
-          );
           return {
             ...p,
             sessions: newSessions,
             lastInfusionDate: session.date,
+            nextInfusionDate: session.date,
           };
         }
         return p;
       })
     );
+
+    try {
+      const res = await fetch("/api/carcinome/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, session }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.patient) {
+          setPatients((prev) =>
+            prev.map((p) => (p.id === patientId ? data.patient : p))
+          );
+          logAction("CREATE", "Session", patientId, data.patient.name, `Added infusion session on ${session.date} for ${data.patient.name}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
   };
 
-  const updateSession = (patientId: string, sessionIndex: number, session: InfusionSession) => {
+  const updateSession = async (patientId: string, sessionIndex: number, session: InfusionSession) => {
+    // Optimistic update
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
           const newSessions = [...p.sessions];
           newSessions[sessionIndex] = session;
-          logAction(
-            "UPDATE",
-            "Session",
-            patientId,
-            p.name,
-            `Updated session ${sessionIndex + 1} for ${p.name}`
-          );
           return { ...p, sessions: newSessions };
         }
         return p;
       })
     );
+
+    try {
+      const res = await fetch(`/api/carcinome/sessions/by-index`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, sessionIndex, session }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.patient) {
+          setPatients((prev) =>
+            prev.map((p) => (p.id === patientId ? data.patient : p))
+          );
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
   };
 
-  const deleteSession = (patientId: string, sessionIndex: number) => {
+  const deleteSession = async (patientId: string, sessionIndex: number) => {
+    // Optimistic update
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
           const newSessions = p.sessions.filter((_, idx) => idx !== sessionIndex);
-          logAction(
-            "DELETE",
-            "Session",
-            patientId,
-            p.name,
-            `Deleted session ${sessionIndex + 1} for ${p.name}`
-          );
           return { ...p, sessions: newSessions };
         }
         return p;
       })
     );
+
+    try {
+      const res = await fetch(`/api/carcinome/sessions/by-index`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, sessionIndex }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.patient) {
+          setPatients((prev) =>
+            prev.map((p) => (p.id === patientId ? data.patient : p))
+          );
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
   };
 
   // Payment Status
-  const updatePaymentStatus = (patientId: string, paymentStatus: PaymentStatus, sessionIndex?: number) => {
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (p.id === patientId) {
-          let updatedSessions = p.sessions;
-          if (sessionIndex !== undefined && updatedSessions[sessionIndex]) {
-            updatedSessions = [...updatedSessions];
-            updatedSessions[sessionIndex] = {
-              ...updatedSessions[sessionIndex],
-              paymentStatus,
-            };
-          }
-          logAction(
-            "PAYMENT",
-            "Payment",
-            patientId,
-            p.name,
-            `Updated payment status to ${paymentStatus} for ${p.name}`
-          );
-          return {
-            ...p,
-            paymentStatus,
-            sessions: updatedSessions,
-          };
-        }
-        return p;
-      })
-    );
+  const updatePaymentStatus = async (patientId: string, paymentStatus: PaymentStatus, sessionIndex?: number) => {
+    await updatePatient(patientId, { paymentStatus });
+    if (sessionIndex !== undefined) {
+      const targetPatient = patients.find((p) => p.id === patientId);
+      const existingSession = targetPatient?.sessions[sessionIndex];
+      if (existingSession) {
+        await updateSession(patientId, sessionIndex, { ...existingSession, paymentStatus });
+      }
+    }
   };
 
   // Task CRUD
-  const addTask = (taskData: Omit<Task, "id">) => {
-    const newTask: Task = {
-      ...taskData,
-      id: `TSK-${(tasks.length + 101).toString()}`,
-    };
-    setTasks((prev) => [newTask, ...prev]);
-    logAction("CREATE", "Task", newTask.id, newTask.title, `Created task: ${newTask.title}`);
-  };
-
-  const updateTaskStatus = (taskId: string, status: Task["status"]) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          logAction(
-            "TASK_COMPLETE",
-            "Task",
-            t.id,
-            t.title,
-            `Updated task ${t.id} status to ${status}`
-          );
-          return { ...t, status };
+  const addTask = async (taskData: Omit<Task, "id">) => {
+    try {
+      const res = await fetch("/api/carcinome/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.task) {
+          setTasks((prev) => [data.task, ...prev]);
+          logAction("CREATE", "Task", data.task.id, data.task.title, `Created task: ${data.task.title}`);
         }
-        return t;
-      })
-    );
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const deleteTask = (taskId: string) => {
+  const updateTaskStatus = async (taskId: string, status: Task["status"]) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status } : t))
+    );
+
+    try {
+      const res = await fetch(`/api/carcinome/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.task) {
+          logAction("TASK_COMPLETE", "Task", data.task.id, data.task.title, `Updated task ${data.task.id} status to ${status}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
+  };
+
+  const deleteTask = async (taskId: string) => {
     const target = tasks.find((t) => t.id === taskId);
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    if (target) {
-      logAction("DELETE", "Task", taskId, target.title, `Deleted task ${target.title}`);
+
+    try {
+      await fetch(`/api/carcinome/tasks/${taskId}`, { method: "DELETE" });
+      if (target) {
+        logAction("DELETE", "Task", taskId, target.title, `Deleted task ${target.title}`);
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
     }
   };
 
   // Master Data
-  const addMasterItem = (item: Omit<MasterDataItem, "id" | "active">) => {
-    const newItem: MasterDataItem = {
-      ...item,
-      id: `md-custom-${Date.now().toString().slice(-4)}`,
-      active: true,
-    };
-    setMasterData((prev) => [...prev, newItem]);
-    logAction(
-      "CREATE",
-      "MasterData",
-      newItem.id,
-      newItem.label,
-      `Added master data option: ${newItem.label} under ${newItem.category}`
-    );
+  const addMasterItem = async (item: Omit<MasterDataItem, "id" | "active">) => {
+    try {
+      const res = await fetch("/api/carcinome/master-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.item) {
+          setMasterData((prev) => [...prev, data.item]);
+          logAction("CREATE", "MasterData", data.item.id, data.item.label, `Added master option: ${data.item.label}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const toggleMasterItem = (id: string) => {
+  const toggleMasterItem = async (id: string) => {
+    const item = masterData.find((m) => m.id === id);
+    if (!item) return;
+    const newActive = !item.active;
+
     setMasterData((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const updated = { ...item, active: !item.active };
-          logAction(
-            "UPDATE",
-            "MasterData",
-            id,
-            item.label,
-            `Toggled master item ${item.label} to ${updated.active ? "Active" : "Inactive"}`
-          );
-          return updated;
-        }
-        return item;
-      })
+      prev.map((m) => (m.id === id ? { ...m, active: newActive } : m))
     );
+
+    try {
+      await fetch(`/api/carcinome/master-data/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: newActive }),
+      });
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
   };
 
   // Notes & Documents
-  const addNote = (patientId: string, content: string) => {
+  const addNote = async (patientId: string, content: string) => {
     const targetPatient = patients.find((p) => p.id === patientId);
-    const newNote: PatientNote = {
-      id: `NTE-${Date.now().toString().slice(-4)}`,
-      patientId,
-      author: "Team Lead",
-      role: "Operations Lead",
-      content,
-      createdAt: new Date().toISOString().replace("T", " ").slice(0, 16),
-    };
-    setNotes((prev) => [newNote, ...prev]);
-    logAction(
-      "UPDATE",
-      "Patient",
-      patientId,
-      targetPatient?.name || patientId,
-      `Added operational note to ${targetPatient?.name || patientId}`
-    );
+    try {
+      const res = await fetch("/api/carcinome/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, content }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.note) {
+          setNotes((prev) => [data.note, ...prev]);
+          logAction("UPDATE", "Patient", patientId, targetPatient?.name || patientId, `Added note to ${targetPatient?.name || patientId}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const addDocument = (
+  const addDocument = async (
     patientId: string,
     file: { name: string; fileType: "pdf" | "image" | "doc"; size: string }
   ) => {
     const targetPatient = patients.find((p) => p.id === patientId);
-    const newDoc: PatientDocument = {
-      id: `DOC-${Date.now().toString().slice(-4)}`,
-      patientId,
-      name: file.name,
-      fileType: file.fileType,
-      uploadedAt: new Date().toISOString().slice(0, 10),
-      uploadedBy: "Team Lead",
-      size: file.size,
-    };
-    setDocuments((prev) => [newDoc, ...prev]);
-    logAction(
-      "DOCUMENT_UPLOAD",
-      "Document",
-      newDoc.id,
-      file.name,
-      `Uploaded document ${file.name} for ${targetPatient?.name || patientId}`
-    );
+    try {
+      const res = await fetch("/api/carcinome/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, ...file }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.document) {
+          setDocuments((prev) => [data.document, ...prev]);
+          logAction("DOCUMENT_UPLOAD", "Document", data.document.id, file.name, `Uploaded document ${file.name}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -448,6 +495,9 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSelectedPatientId,
         activeTab,
         setActiveTab,
+        loading,
+        error,
+        refreshData,
 
         addPatient,
         updatePatient,
