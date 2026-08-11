@@ -42,6 +42,7 @@ interface PatientDetailsViewProps {
 
 export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientId, onClose }) => {
   const {
+    activeTab: contextTab,
     patients,
     masterData,
     notes,
@@ -55,6 +56,28 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
     addNote,
     addDocument,
   } = useCarcinome();
+
+  const getBackLabel = () => {
+    switch (contextTab) {
+      case "sessions":
+        return "Back to Sessions";
+      case "payments":
+        return "Back to Payments";
+      case "dashboard":
+        return "Back to Dashboard";
+      case "tasks":
+        return "Back to Tasks";
+      case "reports":
+        return "Back to Reports";
+      case "master-data":
+        return "Back to Master Data";
+      case "audit":
+        return "Back to Audit Log";
+      case "patients":
+      default:
+        return "Back to Patients Directory";
+    }
+  };
 
   const [activeTab, setActiveTab] = useState("overview");
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -70,7 +93,7 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
       <div className="p-8 text-center space-y-4">
         <p className="text-slate-500">Patient profile not found.</p>
         <Button onClick={onClose} variant="outline" className="gap-2 text-xs">
-          <ArrowLeft className="h-4 w-4" /> Return to Directory
+          <ArrowLeft className="h-4 w-4" /> {getBackLabel()}
         </Button>
       </div>
     );
@@ -128,7 +151,7 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
           onClick={onClose}
           className="w-fit gap-2 text-xs font-medium border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Patients Directory
+          <ArrowLeft className="h-4 w-4" /> {getBackLabel()}
         </Button>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -167,7 +190,7 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
               <Badge
                 className={
                   patient.onboardingStatus === "Active"
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    ? "bg-blue-100/60 text-blue-600 dark:bg-blue-100/60 dark:text-blue-600"
                     : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                 }
               >
@@ -180,7 +203,7 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
                 <Phone className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> {patient.phone}
               </span>
               <span className="flex items-center gap-1.5">
-                <Stethoscope className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> {patient.assignedDoctor}
+                <Stethoscope className="h-3.5 w-3.5 text-blue-600 dark:text-blue-600" /> {patient.assignedDoctor}
               </span>
               <span className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" /> Intern: {patient.allottedIntern || "Unassigned"}
@@ -190,10 +213,10 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
 
           <div className="flex flex-col items-start md:items-end gap-1.5 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs min-w-[210px]">
             <span className="text-slate-500 dark:text-slate-400 font-medium">Financial Ledger Summary</span>
-            <div className="text-base font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="text-base font-semibold text-blue-600 dark:text-blue-600">
               Paid: ₹{totalPaid.toLocaleString("en-IN")}
             </div>
-            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+            <div className="text-xs text-blue-600 dark:text-blue-600 font-medium">
               Pending: ₹{totalPending.toLocaleString("en-IN")}
             </div>
           </div>
@@ -245,149 +268,158 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
           </div>
 
           {/* TAB 1: OVERVIEW */}
-          <TabsContent value="overview" className="p-6 space-y-6">
-            <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TabsContent value="overview" className="p-6 space-y-5">
+
+            {/* ── Section: Clinical Details ─────────────────────────────── */}
+            <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-blue-200 dark:border-blue-900/60 bg-blue-100/60 dark:bg-blue-950/40">
+                <Stethoscope className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-blue-800 dark:text-blue-300 tracking-wide uppercase">Clinical Details</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Assigned Doctor
-                  </Label>
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Diagnosis</Label>
+                  <Input
+                    value={patient.diagnosis}
+                    onChange={(e) => updatePatient(patient.id, { diagnosis: e.target.value })}
+                    className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Chemotherapy Regimen / Medicine</Label>
+                  <Input
+                    value={patient.medicine}
+                    onChange={(e) => updatePatient(patient.id, { medicine: e.target.value })}
+                    className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Location / Residential Address</Label>
+                  <Input
+                    value={patient.location}
+                    onChange={(e) => updatePatient(patient.id, { location: e.target.value })}
+                    className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Section: Care Team ────────────────────────────────────── */}
+            <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-blue-200 dark:border-blue-900/60 bg-blue-100/60 dark:bg-blue-950/40">
+                <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-blue-800 dark:text-blue-300 tracking-wide uppercase">Care Team</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1.5">
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Assigned Doctor</Label>
                   <Select
                     value={patient.assignedDoctor}
                     onValueChange={(val) => updatePatient(patient.id, { assignedDoctor: val })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus:ring-blue-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {doctors.map((d) => (
-                        <SelectItem key={d.id} value={d.value}>
-                          {d.label}
-                        </SelectItem>
+                        <SelectItem key={d.id} value={d.value}>{d.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Assigned Intern (Owner)
-                  </Label>
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Assigned Intern (Owner)</Label>
                   <Select
                     value={patient.allottedIntern || ""}
                     onValueChange={(val) => updatePatient(patient.id, { allottedIntern: val })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus:ring-blue-500">
                       <SelectValue placeholder="Unassigned" />
                     </SelectTrigger>
                     <SelectContent>
                       {interns.map((i) => (
-                        <SelectItem key={i.id} value={i.value}>
-                          {i.label}
-                        </SelectItem>
+                        <SelectItem key={i.id} value={i.value}>{i.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Diagnosis
-                  </Label>
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Assigned Nurse</Label>
                   <Input
-                    value={patient.diagnosis}
-                    onChange={(e) => updatePatient(patient.id, { diagnosis: e.target.value })}
+                    value={patient.assignedNurse}
+                    onChange={(e) => updatePatient(patient.id, { assignedNurse: e.target.value })}
+                    className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500"
                   />
                 </div>
-
                 <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Chemotherapy Regimen / Medicine
-                  </Label>
-                  <Input
-                    value={patient.medicine}
-                    onChange={(e) => updatePatient(patient.id, { medicine: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Pharma Supplier
-                  </Label>
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Pharma Supplier</Label>
                   <Select
                     value={patient.supplier}
                     onValueChange={(val) => updatePatient(patient.id, { supplier: val })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus:ring-blue-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {suppliers.map((s) => (
-                        <SelectItem key={s.id} value={s.value}>
-                          {s.label}
-                        </SelectItem>
+                        <SelectItem key={s.id} value={s.value}>{s.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </div>
 
-                <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Assigned Nurse
-                  </Label>
-                  <Input
-                    value={patient.assignedNurse}
-                    onChange={(e) => updatePatient(patient.id, { assignedNurse: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Onboarding / Stage Status
-                  </Label>
+            {/* ── Section: Stage & Status ───────────────────────────────── */}
+            <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-blue-200 dark:border-blue-900/60 bg-blue-100/60 dark:bg-blue-950/40">
+                <Activity className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-blue-800 dark:text-blue-300 tracking-wide uppercase">Stage &amp; Status</span>
+              </div>
+              <div className="p-4 text-xs">
+                <div className="space-y-1.5 max-w-sm">
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Onboarding / Stage Status</Label>
                   <Select
                     value={patient.onboardingStatus}
                     onValueChange={(val: OnboardingStatus) =>
                       updatePatient(patient.id, { onboardingStatus: val })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus:ring-blue-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Active">Active</SelectItem>
                       <SelectItem value="Treatment completed">Treatment completed</SelectItem>
-                      <SelectItem value="No longer with the organisation">
-                        No longer with organisation
-                      </SelectItem>
+                      <SelectItem value="No longer with the organisation">No longer with organisation</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </div>
 
+            {/* ── Section: Scheduling Notes ─────────────────────────────── */}
+            <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-blue-200 dark:border-blue-900/60 bg-blue-100/60 dark:bg-blue-950/40">
+                <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-blue-800 dark:text-blue-300 tracking-wide uppercase">Infusion Scheduling</span>
+              </div>
+              <div className="p-4 text-xs">
                 <div className="space-y-1.5">
-                  <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Location / Residential Address
-                  </Label>
-                  <Input
-                    value={patient.location}
-                    onChange={(e) => updatePatient(patient.id, { location: e.target.value })}
+                  <Label className="font-semibold text-slate-700 dark:text-slate-300">Schedule &amp; Coordination Notes</Label>
+                  <Textarea
+                    rows={3}
+                    value={patient.infusionScheduleNotes || ""}
+                    onChange={(e) =>
+                      updatePatient(patient.id, { infusionScheduleNotes: e.target.value })
+                    }
+                    className="border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500 resize-none"
+                    placeholder="e.g. Weekly rotational on Mondays, coordinate with nurse before ordering medicine..."
                   />
                 </div>
               </div>
-
-              <div className="space-y-1.5 pt-2">
-                <Label className="font-semibold text-slate-700 dark:text-slate-300">
-                  Infusion Schedule & Coordination Notes
-                </Label>
-                <Textarea
-                  rows={3}
-                  value={patient.infusionScheduleNotes || ""}
-                  onChange={(e) =>
-                    updatePatient(patient.id, { infusionScheduleNotes: e.target.value })
-                  }
-                />
-              </div>
             </div>
+
           </TabsContent>
 
           {/* TAB 2: SESSIONS */}
@@ -447,8 +479,8 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
                           <Badge
                             className={
                               s.paymentStatus === "Paid"
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                ? "bg-blue-100/60 text-blue-600 dark:bg-blue-100/60 dark:text-blue-600"
+                                : "bg-blue-100/60 text-blue-600 dark:bg-blue-100/60 dark:text-blue-600"
                             }
                           >
                             {s.paymentStatus || "Pending"}
@@ -504,15 +536,15 @@ export const PatientDetailsView: React.FC<PatientDetailsViewProps> = ({ patientI
                   ₹{totalBilled.toLocaleString("en-IN")}
                 </div>
               </div>
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-lg">
-                <div className="text-xs text-emerald-700 dark:text-emerald-400">Total Collected</div>
-                <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">
+              <div className="p-4 bg-blue-100/60 dark:bg-blue-50/40 border border-blue-300 dark:border-blue-300/50 rounded-lg">
+                <div className="text-xs text-blue-600 dark:text-blue-600">Total Collected</div>
+                <div className="text-xl font-bold text-blue-600 dark:text-blue-600 mt-1">
                   ₹{totalPaid.toLocaleString("en-IN")}
                 </div>
               </div>
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg">
-                <div className="text-xs text-amber-700 dark:text-amber-400">Balance Pending</div>
-                <div className="text-xl font-bold text-amber-700 dark:text-amber-300 mt-1">
+              <div className="p-4 bg-blue-100/60 dark:bg-blue-50/40 border border-blue-300 dark:border-blue-300/50 rounded-lg">
+                <div className="text-xs text-blue-600 dark:text-blue-600">Balance Pending</div>
+                <div className="text-xl font-bold text-blue-600 dark:text-blue-600 mt-1">
                   ₹{totalPending.toLocaleString("en-IN")}
                 </div>
               </div>

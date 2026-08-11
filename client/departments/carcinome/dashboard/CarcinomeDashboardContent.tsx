@@ -1,4 +1,5 @@
 import React from "react";
+import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -11,7 +12,7 @@ import {
   HeartPulse,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CarcinomeProvider, useCarcinome } from "../context/CarcinomeContext";
+import { CarcinomeProvider } from "../context/CarcinomeContext";
 import { OverviewDashboardView } from "../views/OverviewDashboardView";
 import { PatientsView } from "../views/PatientsView";
 import { SessionsView } from "../views/SessionsView";
@@ -23,22 +24,33 @@ import { AuditLogView } from "../views/AuditLogView";
 import { PatientDetailsView } from "../views/PatientDetailsView";
 
 const NAVIGATION_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "patients", label: "Patients", icon: Users },
-  { id: "sessions", label: "Sessions", icon: Calendar },
-  { id: "tasks", label: "Tasks", icon: CheckSquare },
-  { id: "payments", label: "Payments", icon: IndianRupee },
-  { id: "reports", label: "Reports", icon: BarChart3 },
-  { id: "master-data", label: "Master Data", icon: Database },
-  { id: "audit", label: "Audit Log", icon: Activity },
+  { id: "dashboard", path: "/departments/carcinome/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "patients", path: "/departments/carcinome/patients", label: "Patients", icon: Users },
+  { id: "sessions", path: "/departments/carcinome/sessions", label: "Sessions", icon: Calendar },
+  { id: "tasks", path: "/departments/carcinome/tasks", label: "Tasks", icon: CheckSquare },
+  { id: "payments", path: "/departments/carcinome/payments", label: "Payments", icon: IndianRupee },
+  { id: "reports", path: "/departments/carcinome/reports", label: "Reports", icon: BarChart3 },
+  { id: "master-data", path: "/departments/carcinome/master-data", label: "Master Data", icon: Database },
+  { id: "audit", path: "/departments/carcinome/audit", label: "Audit Log", icon: Activity },
 ];
 
-function CarcinomeDashboardInner() {
-  const { activeTab, setActiveTab, selectedPatientId, setSelectedPatientId } = useCarcinome();
+function PatientDetailsRouteWrapper() {
+  const { patientId } = useParams();
+  const navigate = useNavigate();
+  return (
+    <PatientDetailsView
+      patientId={patientId || null}
+      onClose={() => navigate(-1)}
+    />
+  );
+}
 
-  const handleTabClick = (tabId: string) => {
-    setSelectedPatientId(null);
-    setActiveTab(tabId);
+function CarcinomeDashboardInner() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleTabClick = (path: string) => {
+    navigate(path);
   };
 
   return (
@@ -68,11 +80,11 @@ function CarcinomeDashboardInner() {
         <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
           {NAVIGATION_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = !selectedPatientId && activeTab === item.id;
+            const isActive = location.pathname.startsWith(item.path);
             return (
               <button
                 key={item.id}
-                onClick={() => handleTabClick(item.id)}
+                onClick={() => handleTabClick(item.path)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                   isActive
                     ? "bg-blue-600 text-white shadow-sm"
@@ -89,23 +101,19 @@ function CarcinomeDashboardInner() {
 
       {/* Main View Area */}
       <div>
-        {selectedPatientId ? (
-          <PatientDetailsView
-            patientId={selectedPatientId}
-            onClose={() => setSelectedPatientId(null)}
-          />
-        ) : (
-          <>
-            {activeTab === "dashboard" && <OverviewDashboardView />}
-            {activeTab === "patients" && <PatientsView />}
-            {activeTab === "sessions" && <SessionsView />}
-            {activeTab === "tasks" && <TasksView />}
-            {activeTab === "payments" && <PaymentsView />}
-            {activeTab === "reports" && <ReportsView />}
-            {activeTab === "master-data" && <MasterDataView />}
-            {activeTab === "audit" && <AuditLogView />}
-          </>
-        )}
+        <Routes>
+          <Route path="/" element={<Navigate to="/departments/carcinome/dashboard" replace />} />
+          <Route path="/dashboard" element={<OverviewDashboardView />} />
+          <Route path="/patients" element={<PatientsView />} />
+          <Route path="/patients/:patientId" element={<PatientDetailsRouteWrapper />} />
+          <Route path="/sessions" element={<SessionsView />} />
+          <Route path="/tasks" element={<TasksView />} />
+          <Route path="/payments" element={<PaymentsView />} />
+          <Route path="/reports" element={<ReportsView />} />
+          <Route path="/master-data" element={<MasterDataView />} />
+          <Route path="/audit" element={<AuditLogView />} />
+          <Route path="*" element={<Navigate to="/departments/carcinome/dashboard" replace />} />
+        </Routes>
       </div>
     </div>
   );

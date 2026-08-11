@@ -114,7 +114,7 @@ export default function App() {
                 />
 
                 <Route
-                  path="/departments/carcinome"
+                  path="/departments/carcinome/*"
                   element={
                     <ProtectedRoute>
                       <DepartmentGuard allowedDepartment="carcinome">

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -55,7 +56,8 @@ const AutoResizingNoteInput: React.FC<{
 };
 
 export const PatientsView: React.FC = () => {
-  const { patients, masterData, setSelectedPatientId, updatePatient } = useCarcinome();
+  const navigate = useNavigate();
+  const { patients, masterData, updatePatient } = useCarcinome();
 
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
@@ -199,7 +201,7 @@ export const PatientsView: React.FC = () => {
                 filteredPatients.map((patient) => (
                   <tr
                     key={patient.id}
-                    onClick={() => setSelectedPatientId(patient.id)}
+                    onClick={() => navigate(`/departments/carcinome/patients/${patient.id}`)}
                     className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer group"
                   >
                     {/* Patient ID & Name */}
@@ -243,16 +245,28 @@ export const PatientsView: React.FC = () => {
 
                     {/* Next Session */}
                     <td className="p-3.5">
-                      {patient.nextInfusionDate ? (
-                        <span className="font-semibold text-blue-700 dark:text-blue-300">
-                          {new Date(patient.nextInfusionDate).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
+                      {(() => {
+                        const targetDate =
+                          patient.nextInfusionDate ||
+                          (patient.sessions.length > 0 ? patient.sessions[patient.sessions.length - 1].date : null);
+                        if (!targetDate) return <span className="text-slate-400">—</span>;
+                        try {
+                          const parsed = new Date(targetDate);
+                          if (isNaN(parsed.getTime())) {
+                            return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
+                          }
+                          return (
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">
+                              {parsed.toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </span>
+                          );
+                        } catch {
+                          return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
+                        }
+                      })()}
                     </td>
 
                     {/* Payment Status */}

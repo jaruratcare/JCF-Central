@@ -5,6 +5,7 @@ import { handleDemo } from "./routes/demo";
 import { handleLogin, handleLogout, handleRequestPasswordReset } from "./routes/auth";
 import { handleChangePassword } from "./routes/password";
 import techRouter from "./routes/tech/index";
+import carcinomeRouter from "./routes/carcinome/index";
 
 export function createServer() {
   const app = express();
@@ -29,6 +30,7 @@ export function createServer() {
   app.post("/api/auth/change-password", handleChangePassword);
 
   app.use("/api/tech", techRouter);
+  app.use("/api/carcinome", carcinomeRouter);
 
   return app;
 }

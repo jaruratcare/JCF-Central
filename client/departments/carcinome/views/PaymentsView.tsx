@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { IndianRupee, Search, CheckCircle2, Clock, ShieldCheck, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,8 @@ import { useCarcinome } from "../context/CarcinomeContext";
 import type { PaymentStatus } from "../data/dummy-data";
 
 export const PaymentsView: React.FC = () => {
-  const { patients, setSelectedPatientId, setActiveTab, updatePaymentStatus } = useCarcinome();
+  const navigate = useNavigate();
+  const { patients, updatePaymentStatus } = useCarcinome();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -207,8 +209,7 @@ export const PaymentsView: React.FC = () => {
                   <tr
                     key={rec.id}
                     onClick={() => {
-                      setSelectedPatientId(rec.patientId);
-                      setActiveTab("patients");
+                      navigate(`/departments/carcinome/patients/${rec.patientId}`);
                     }}
                     className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
                   >
