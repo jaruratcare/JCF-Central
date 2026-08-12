@@ -91,6 +91,7 @@ export const SessionsView: React.FC = () => {
   const totalSessionsCount = allSessions.length;
   const completedPaidCount = allSessions.filter((s) => s.paymentStatus === "Paid").length;
   const pendingCount = allSessions.filter((s) => s.paymentStatus === "Pending").length;
+  const insuranceCount = allSessions.filter((s) => s.paymentStatus === "Insurance Processing").length;
 
   return (
     <div className="space-y-6">
@@ -154,7 +155,23 @@ export const SessionsView: React.FC = () => {
       {/* Filter Bar */}
       <Card className="border-slate-200 dark:border-slate-800">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2 text-[11px]">
+              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+                Pending follow-ups: {pendingCount}
+              </Badge>
+              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+                Paid settled: {completedPaidCount}
+              </Badge>
+              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
+                Insurance in review: {insuranceCount}
+              </Badge>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
+              Sorted by {sortBy === "date" ? "date" : sortBy} • {sortDirection === "desc" ? "newest first" : "oldest first"}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="relative sm:col-span-2">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input

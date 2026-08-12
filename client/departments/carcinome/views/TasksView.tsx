@@ -38,7 +38,14 @@ export const TasksView: React.FC = () => {
     setDragOverStatus(null);
   };
 
-  const handleDrop = (status: Task["status"]) => {
+  const handleDragOver = (status: Task["status"]) => (event: React.DragEvent<HTMLElement>) => {
+    if (!draggingTaskId) return;
+    event.preventDefault();
+    setDragOverStatus(status);
+  };
+
+  const handleDrop = (status: Task["status"]) => (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
     if (!draggingTaskId) return;
     updateTaskStatus(draggingTaskId, status);
     setDraggingTaskId(null);
@@ -147,12 +154,9 @@ export const TasksView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Column 1: Pending */}
           <section
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragOverStatus("Pending");
-            }}
+            onDragOver={handleDragOver("Pending")}
             onDragLeave={() => setDragOverStatus(null)}
-            onDrop={() => handleDrop("Pending")}
+            onDrop={handleDrop("Pending")}
             className={`space-y-3 rounded-2xl transition-all ${
               dragOverStatus === "Pending"
                 ? "ring-2 ring-amber-400/80 bg-amber-50/70"
@@ -181,12 +185,9 @@ export const TasksView: React.FC = () => {
 
           {/* Column 2: In Progress */}
           <section
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragOverStatus("In Progress");
-            }}
+            onDragOver={handleDragOver("In Progress")}
             onDragLeave={() => setDragOverStatus(null)}
-            onDrop={() => handleDrop("In Progress")}
+            onDrop={handleDrop("In Progress")}
             className={`space-y-3 rounded-2xl transition-all ${
               dragOverStatus === "In Progress"
                 ? "ring-2 ring-blue-400/80 bg-blue-50/60"
@@ -215,12 +216,9 @@ export const TasksView: React.FC = () => {
 
           {/* Column 3: Completed */}
           <section
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragOverStatus("Completed");
-            }}
+            onDragOver={handleDragOver("Completed")}
             onDragLeave={() => setDragOverStatus(null)}
-            onDrop={() => handleDrop("Completed")}
+            onDrop={handleDrop("Completed")}
             className={`space-y-3 rounded-2xl transition-all ${
               dragOverStatus === "Completed"
                 ? "ring-2 ring-emerald-400/80 bg-emerald-50/70"
@@ -327,7 +325,7 @@ function TaskCard({
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow"
+      className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
     >
       <CardContent className="p-3.5 space-y-2 text-xs">
         <div className="flex items-center justify-between gap-2">

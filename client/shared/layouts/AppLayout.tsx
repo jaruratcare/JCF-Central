@@ -34,19 +34,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:relative z-40 h-screen w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 flex flex-col shadow-lg
+          fixed lg:relative z-40 h-screen w-64 bg-gradient-to-b from-slate-950 via-blue-950/95 to-slate-900 text-sidebar-foreground transition-transform duration-300 flex flex-col shadow-2xl shadow-blue-950/30
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         `}
       >
-        <div className="p-6 border-b border-sidebar-border bg-gradient-to-r from-blue-700 to-blue-600">
-          <h1 className="text-2xl font-bold">JCF</h1>
-          <p className="text-xs opacity-90 mt-1">Central Hub</p>
+        <div className="p-6 border-b border-white/10 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500">
+          <div className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-blue-50/90">
+            <span className="mr-2 h-2 w-2 rounded-full bg-cyan-300" />
+            Operations Hub
+          </div>
+          <h1 className="mt-3 text-2xl font-bold text-white">JCF</h1>
+          <p className="mt-1 text-xs text-blue-50/90">Central Hub</p>
         </div>
 
-        <nav className="flex-1 overflow-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-auto p-3 space-y-1.5">
           <button
             onClick={() => navigate(`/departments/${user?.department}`)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left text-sm font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left text-sm font-medium text-blue-50/90 hover:bg-white/10 hover:text-white"
           >
             <Home className="w-5 h-5" />
             <span>Dashboard</span>
@@ -54,7 +58,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
 
           <button
             onClick={() => navigate('/settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left text-sm font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left text-sm font-medium text-blue-50/90 hover:bg-white/10 hover:text-white"
           >
             <Settings className="w-5 h-5" />
             <span>Settings</span>
@@ -63,7 +67,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
           {secondaryNav}
         </nav>
 
-        <div className="border-t border-sidebar-border p-4 bg-gradient-to-t from-blue-900/50">
+        <div className="border-t border-white/10 p-4 bg-gradient-to-t from-blue-950/80">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent/30 transition-all text-left">
