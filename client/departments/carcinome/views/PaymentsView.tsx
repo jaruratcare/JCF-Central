@@ -211,7 +211,7 @@ export const PaymentsView: React.FC = () => {
                     onClick={() => {
                       navigate(`/departments/carcinome/patients/${rec.patientId}`);
                     }}
-                    className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                   >
                     <td className="p-3.5 font-mono text-[11px] text-slate-500">{rec.id}</td>
                     <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">

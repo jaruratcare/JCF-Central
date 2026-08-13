@@ -185,7 +185,7 @@ export const OverviewDashboardView: React.FC = () => {
 
       {/* 4 Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
+        <Card className="hover:shadow-sm hover:border-slate-300/80 dark:hover:border-slate-700 transition-all border-slate-200 dark:border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Active Patients
@@ -205,7 +205,7 @@ export const OverviewDashboardView: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
+        <Card className="hover:shadow-sm hover:border-slate-300/80 dark:hover:border-slate-700 transition-all border-slate-200 dark:border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Infusions This Week
@@ -224,7 +224,7 @@ export const OverviewDashboardView: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
+        <Card className="hover:shadow-sm hover:border-slate-300/80 dark:hover:border-slate-700 transition-all border-slate-200 dark:border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Pending Payments
@@ -243,7 +243,7 @@ export const OverviewDashboardView: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
+        <Card className="hover:shadow-sm hover:border-slate-300/80 dark:hover:border-slate-700 transition-all border-slate-200 dark:border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Tasks Needing Attention
@@ -299,7 +299,7 @@ export const OverviewDashboardView: React.FC = () => {
                       onClick={() => {
                         navigate(`/departments/carcinome/patients/${session.patientId}`);
                       }}
-                      className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-lg hover:bg-blue-50/50 dark:hover:bg-blue-950/20 border border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-lg hover:bg-slate-100/70 dark:hover:bg-slate-800/50 border border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center text-xs">
@@ -355,7 +355,7 @@ export const OverviewDashboardView: React.FC = () => {
                 {tasksDueToday.slice(0, 5).map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-indigo-300 transition-colors"
+                    className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                   >
                     <input
                       type="checkbox"

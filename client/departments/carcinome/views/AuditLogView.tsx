@@ -110,7 +110,7 @@ export const AuditLogView: React.FC = () => {
                   <tr
                     key={log.id}
                     onClick={() => setSelectedLog(log)}
-                    className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                   >
                     <td className="p-3.5 font-mono text-slate-500">
                       <div className="font-semibold text-slate-700 dark:text-slate-300">{log.id}</div>

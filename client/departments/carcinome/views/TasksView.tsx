@@ -251,7 +251,7 @@ export const TasksView: React.FC = () => {
           <CardContent className="p-0">
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredTasks.map((t) => (
-                <div key={t.id} className="p-4 flex items-start gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 text-xs">
+                <div key={t.id} className="p-4 flex items-start gap-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 text-xs">
                   <input
                     type="checkbox"
                     checked={t.status === "Completed"}

@@ -12,12 +12,14 @@ function CarcinomaDashboardWithNav() {
 
   useEffect(() => {
     const path = location.pathname;
-    if (path.includes('/patients/')) {
+    if (path.includes('/patients')) {
       setActiveTab('patients');
     } else if (path.includes('/sessions')) {
       setActiveTab('sessions');
     } else if (path.includes('/tasks')) {
       setActiveTab('tasks');
+    } else if (path.includes('/billing')) {
+      setActiveTab('billing');
     } else if (path.includes('/payments')) {
       setActiveTab('payments');
     } else if (path.includes('/reports')) {
@@ -39,6 +41,7 @@ function CarcinomaDashboardWithNav() {
       patients: '/departments/carcinome/patients',
       sessions: '/departments/carcinome/sessions',
       tasks: '/departments/carcinome/tasks',
+      billing: '/departments/carcinome/billing',
       payments: '/departments/carcinome/payments',
       reports: '/departments/carcinome/reports',
       'master-data': '/departments/carcinome/master-data',

@@ -152,7 +152,7 @@ export const MasterDataView: React.FC = () => {
                     </tr>
                   ) : (
                     currentItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                      <tr key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
                         <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">
                           {item.label}
                         </td>

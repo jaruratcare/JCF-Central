@@ -5,6 +5,7 @@ import {
   Calendar,
   CheckSquare,
   IndianRupee,
+  Receipt,
   BarChart3,
   Database,
   Activity,
@@ -20,6 +21,7 @@ const CARCINOME_NAV_ITEMS = [
   { id: "patients", label: "Patients", icon: Users },
   { id: "sessions", label: "Sessions", icon: Calendar },
   { id: "tasks", label: "Tasks", icon: CheckSquare },
+  { id: "billing", label: "Billing", icon: Receipt },
   { id: "payments", label: "Payments", icon: IndianRupee },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "master-data", label: "Master Data", icon: Database },
@@ -42,7 +44,7 @@ export const CarcinomeNav: React.FC<CarcinomeNavProps> = ({ activeTab, onTabChan
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left text-sm font-medium ${
               isActive
                 ? "border-blue-300/60 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white shadow-sm"
-                : "border-transparent text-sidebar-foreground/80 hover:border-blue-300/40 hover:bg-white/10 hover:text-sidebar-foreground"
+                : "border-transparent text-sidebar-foreground/80 hover:border-white/10 hover:bg-white/[0.06] hover:text-sidebar-foreground"
             }`}
           >
             <Icon className={`h-4 w-4 flex-shrink-0 transition-all ${isActive ? "scale-110" : ""}`} />
