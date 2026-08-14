@@ -251,7 +251,7 @@ export const SessionsView: React.FC = () => {
                     onClick={() => {
                       navigate(`/departments/carcinome/patients/${s.patientId}`);
                     }}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors cursor-pointer"
                   >
                     <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">
                       {s.date}

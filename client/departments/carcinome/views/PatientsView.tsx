@@ -202,7 +202,7 @@ export const PatientsView: React.FC = () => {
                   <tr
                     key={patient.id}
                     onClick={() => navigate(`/departments/carcinome/patients/${patient.id}`)}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors cursor-pointer group"
                   >
                     {/* Patient ID & Name */}
                     <td className="p-3.5">

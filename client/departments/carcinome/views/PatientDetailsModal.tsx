@@ -385,7 +385,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({ patien
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {patient.sessions.map((s, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                           <td className="p-3 font-medium">Session {idx + 1}</td>
                           <td className="p-3 font-medium">{s.date}</td>
                           <td className="p-3">
@@ -554,7 +554,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({ patien
                   patientDocs.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/40 text-xs"
+                      className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/20 text-xs"
                     >
                       <div className="flex items-center gap-3">
                         <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />

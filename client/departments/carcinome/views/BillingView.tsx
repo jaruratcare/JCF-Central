@@ -172,7 +172,7 @@ const EditableCell: React.FC<{
   return (
     <span
       onClick={() => { setDraft(String(value)); setEditing(true); }}
-      className={`cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-950/30 hover:outline hover:outline-1 hover:outline-blue-300 px-1.5 py-0.5 rounded transition-all ${className}`}
+      className={`cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-900/10 hover:outline hover:outline-1 hover:outline-blue-300 px-1.5 py-0.5 rounded transition-all ${className}`}
       title="Click to quick-edit"
     >
       {type === "number" ? fmtMoney(Number(value)) : value || "—"}
@@ -333,7 +333,7 @@ const PatientBillsTab: React.FC<{ bills: PatientBill[] }> = ({ bills }) => {
               <Card key={bill.patientId} className="border-slate-200 dark:border-slate-800 overflow-hidden">
                 <button
                   onClick={() => setExpandedPatient(isExpanded ? null : bill.patientId)}
-                  className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center text-xs">
@@ -371,7 +371,7 @@ const PatientBillsTab: React.FC<{ bills: PatientBill[] }> = ({ bills }) => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {bill.rounds.map((round, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                            <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
                               <td className="p-3 font-mono font-semibold text-slate-700 dark:text-slate-300">R{round.round}</td>
                               <td className="p-3 text-slate-700 dark:text-slate-300">{round.infusionDate || "—"}</td>
                               <td className="p-3 text-slate-700 dark:text-slate-300">{fmtMoney(round.fixedCharges)}</td>
@@ -530,7 +530,7 @@ const NursingTab: React.FC<{
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {nursingRates.map((rate) => (
-                  <tr key={rate.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                  <tr key={rate.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
                     <td className="p-2.5">
                       <EditableCell value={rate.service} onSave={(v) => onUpdateRate(rate.id, { service: v })} className="font-medium text-slate-900 dark:text-slate-100" />
                     </td>
@@ -541,10 +541,10 @@ const NursingTab: React.FC<{
                       <EditableCell value={rate.notes} onSave={(v) => onUpdateRate(rate.id, { notes: v })} className="text-slate-500" />
                     </td>
                     <td className="p-2.5 text-right space-x-1">
-                      <button onClick={() => handleOpenEditRate(rate)} title="Edit Rate" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 hover:text-blue-600 transition-colors">
+                      <button onClick={() => handleOpenEditRate(rate)} title="Edit Rate" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-400 hover:text-blue-600 transition-colors">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => onDeleteRate(rate.id)} title="Delete Rate" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                      <button onClick={() => onDeleteRate(rate.id)} title="Delete Rate" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-colors">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
@@ -614,7 +614,7 @@ const NursingTab: React.FC<{
                   <tr><td colSpan={11} className="py-8 text-center text-slate-500">No nursing charges found.</td></tr>
                 ) : (
                   filteredCharges.map((nc) => (
-                    <tr key={nc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={nc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
                       <td className="p-2.5 font-mono text-slate-500">{nc.patientId}</td>
                       <td className="p-2.5 font-medium text-slate-900 dark:text-slate-100">{nc.patientName}</td>
                       <td className="p-2.5"><EditableCell value={nc.round} type="number" onSave={(v) => onUpdateCharge(nc.id, { round: Number(v) || 1 })} className="text-slate-700 dark:text-slate-300" /></td>
@@ -630,10 +630,10 @@ const NursingTab: React.FC<{
                       <td className="p-2.5"><EditableCell value={nc.amountPaidToNurse} type="number" onSave={(v) => onUpdateCharge(nc.id, { amountPaidToNurse: Number(v) || 0 })} className="text-slate-700 dark:text-slate-300" /></td>
                       <td className="p-2.5"><EditableCell value={nc.billingPeriod} onSave={(v) => onUpdateCharge(nc.id, { billingPeriod: v })} className="text-slate-500" /></td>
                       <td className="p-2.5 text-right space-x-1">
-                        <button onClick={() => handleOpenEditCharge(nc)} title="Edit Charge" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 hover:text-blue-600 transition-colors">
+                        <button onClick={() => handleOpenEditCharge(nc)} title="Edit Charge" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-400 hover:text-blue-600 transition-colors">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => onDeleteCharge(nc.id)} title="Delete Charge" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => onDeleteCharge(nc.id)} title="Delete Charge" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-colors">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </td>
@@ -864,7 +864,7 @@ const ConsumablesTab: React.FC<{
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                  <tr key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
                     <td className="p-2.5"><EditableCell value={item.itemCode} onSave={(v) => onUpdateItem(item.id, { itemCode: v })} className="font-mono text-slate-500" /></td>
                     <td className="p-2.5"><EditableCell value={item.itemName} onSave={(v) => onUpdateItem(item.id, { itemName: v })} className="font-medium text-slate-900 dark:text-slate-100" /></td>
                     <td className="p-2.5"><EditableCell value={item.category} onSave={(v) => onUpdateItem(item.id, { category: v })} className="text-slate-500" /></td>
@@ -873,10 +873,10 @@ const ConsumablesTab: React.FC<{
                     <td className="p-2.5 text-emerald-700 dark:text-emerald-400 font-semibold">{fmtMoney(item.margin)}</td>
                     <td className="p-2.5 text-emerald-700 dark:text-emerald-400">{item.marginPercent.toFixed(1)}%</td>
                     <td className="p-2.5 text-right space-x-1">
-                      <button onClick={() => handleOpenEditItem(item)} title="Edit Consumable" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 hover:text-blue-600 transition-colors">
+                      <button onClick={() => handleOpenEditItem(item)} title="Edit Consumable" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-400 hover:text-blue-600 transition-colors">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => onDeleteItem(item.id)} title="Delete Consumable" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                      <button onClick={() => onDeleteItem(item.id)} title="Delete Consumable" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-colors">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
@@ -951,7 +951,7 @@ const ConsumablesTab: React.FC<{
                   <tr><td colSpan={7} className="py-8 text-center text-slate-500">No usage records yet.</td></tr>
                 ) : (
                   usages.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
                       <td className="p-2.5 font-mono text-slate-500">{u.patientId}</td>
                       <td className="p-2.5 font-medium text-slate-900 dark:text-slate-100">{u.patientName}</td>
                       <td className="p-2.5"><EditableCell value={u.round} type="number" onSave={(v) => onUpdateUsage(u.id, { round: Number(v) || 1 })} className="text-slate-700 dark:text-slate-300" /></td>
@@ -959,10 +959,10 @@ const ConsumablesTab: React.FC<{
                       <td className="p-2.5"><EditableCell value={u.landingTotal} type="number" onSave={(v) => { const lp = Number(v) || 0; onUpdateUsage(u.id, { landingTotal: lp, margin: u.mrpTotal - lp }); }} className="text-slate-700 dark:text-slate-300" /></td>
                       <td className="p-2.5 text-emerald-700 dark:text-emerald-400 font-semibold">{fmtMoney(u.margin)}</td>
                       <td className="p-2.5 text-right space-x-1">
-                        <button onClick={() => handleOpenEditUsage(u)} title="Edit Usage Log" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 hover:text-blue-600 transition-colors">
+                        <button onClick={() => handleOpenEditUsage(u)} title="Edit Usage Log" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-400 hover:text-blue-600 transition-colors">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => onDeleteUsage(u.id)} title="Delete Usage Log" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => onDeleteUsage(u.id)} title="Delete Usage Log" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-colors">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </td>
@@ -1107,7 +1107,7 @@ const NursePaymentsTab: React.FC<{
                   <tr><td colSpan={9} className="py-8 text-center text-slate-500">No nurse payment records yet.</td></tr>
                 ) : (
                   nursePayments.map((np) => (
-                    <tr key={np.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={np.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
                       <td className="p-3"><EditableCell value={np.nurseName} onSave={(v) => onUpdatePayment(np.id, { nurseName: v })} className="font-semibold text-slate-900 dark:text-slate-100" /></td>
                       <td className="p-3"><EditableCell value={np.billingPeriod} onSave={(v) => onUpdatePayment(np.id, { billingPeriod: v })} className="text-slate-700 dark:text-slate-300" /></td>
                       <td className="p-3"><EditableCell value={np.billIdsCovered} onSave={(v) => onUpdatePayment(np.id, { billIdsCovered: v })} className="text-slate-500 font-mono text-[11px]" /></td>
@@ -1130,10 +1130,10 @@ const NursePaymentsTab: React.FC<{
                       </td>
                       <td className="p-3"><EditableCell value={np.paymentDate || ""} onSave={(v) => onUpdatePayment(np.id, { paymentDate: v || null })} className="text-slate-500" /></td>
                       <td className="p-3 text-right space-x-1">
-                        <button onClick={() => handleOpenEdit(np)} title="Edit Payment Record" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 hover:text-blue-600 transition-colors">
+                        <button onClick={() => handleOpenEdit(np)} title="Edit Payment Record" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-400 hover:text-blue-600 transition-colors">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => onDeletePayment(np.id)} title="Delete Payment Record" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => onDeletePayment(np.id)} title="Delete Payment Record" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-colors">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </td>
