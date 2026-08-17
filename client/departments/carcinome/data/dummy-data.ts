@@ -55,6 +55,8 @@ export interface Patient {
   paymentStatus: PaymentStatus;
   nextInfusionDate: string | null;
   coordinationNotes: string | null;
+  completedSessionsCount?: number;
+  totalPlannedSessions?: number;
   // Per-session history (from individual tabs in Carcinome DB)
   sessions: InfusionSession[];
 }

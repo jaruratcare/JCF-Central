@@ -9,6 +9,13 @@ import {
   type PatientNote,
   type PaymentStatus,
 } from "../data/dummy-data";
+import {
+  type ColumnConfig,
+  type TableColumnsState,
+  DEFAULT_TABLE_COLUMNS,
+  loadSavedTableColumns,
+  saveTableColumns,
+} from "../data/table-columns";
 
 interface CarcinomeContextType {
   patients: Patient[];
@@ -24,6 +31,11 @@ interface CarcinomeContextType {
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
+
+  // Table Columns Customization
+  tableColumns: TableColumnsState;
+  updateTableColumns: (tabKey: keyof TableColumnsState, newColumns: ColumnConfig[]) => void;
+  resetTableColumns: (tabKey?: keyof TableColumnsState) => void;
 
   // Patient CRUD
   addPatient: (data: Omit<Patient, "id" | "sessions"> & { id?: string }) => Promise<void>;
@@ -65,6 +77,34 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+
+  const [tableColumns, setTableColumns] = useState<TableColumnsState>(() => loadSavedTableColumns());
+
+  const updateTableColumns = useCallback((tabKey: keyof TableColumnsState, newColumns: ColumnConfig[]) => {
+    setTableColumns((prev) => {
+      const updated = {
+        ...prev,
+        [tabKey]: newColumns,
+      };
+      saveTableColumns(updated);
+      return updated;
+    });
+  }, []);
+
+  const resetTableColumns = useCallback((tabKey?: keyof TableColumnsState) => {
+    setTableColumns((prev) => {
+      if (tabKey) {
+        const updated = {
+          ...prev,
+          [tabKey]: DEFAULT_TABLE_COLUMNS[tabKey],
+        };
+        saveTableColumns(updated);
+        return updated;
+      }
+      saveTableColumns(DEFAULT_TABLE_COLUMNS);
+      return DEFAULT_TABLE_COLUMNS;
+    });
+  }, []);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -498,6 +538,10 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         loading,
         error,
         refreshData,
+
+        tableColumns,
+        updateTableColumns,
+        resetTableColumns,
 
         addPatient,
         updatePatient,

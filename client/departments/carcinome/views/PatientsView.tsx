@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import {
   Search,
   Plus,
+  Columns,
+  Eye,
+  EyeOff,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,8 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCarcinome } from "../context/CarcinomeContext";
 import { AddEditPatientModal } from "../modals/AddEditPatientModal";
+import { getActiveColumns } from "../data/table-columns";
 import type { Patient } from "../data/dummy-data";
 
 const AutoResizingNoteInput: React.FC<{
@@ -57,7 +71,7 @@ const AutoResizingNoteInput: React.FC<{
 
 export const PatientsView: React.FC = () => {
   const navigate = useNavigate();
-  const { patients, masterData, updatePatient } = useCarcinome();
+  const { patients, masterData, updatePatient, tableColumns, updateTableColumns, setActiveTab } = useCarcinome();
 
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
@@ -70,6 +84,10 @@ export const PatientsView: React.FC = () => {
 
   const doctors = masterData.filter((m) => m.category === "Doctor" && m.active);
   const interns = masterData.filter((m) => m.category === "Assignee" && m.active);
+
+  // Active sorted & visible columns
+  const patientColumns = tableColumns.patients || [];
+  const activeColumns = useMemo(() => getActiveColumns(patientColumns), [patientColumns]);
 
   const filteredPatients = useMemo(() => {
     return patients.filter((p) => {
@@ -90,6 +108,169 @@ export const PatientsView: React.FC = () => {
     });
   }, [patients, search, stageFilter, doctorFilter, internFilter, paymentFilter]);
 
+  const toggleColumnVisibility = (id: string) => {
+    const updated = patientColumns.map((col) =>
+      col.id === id ? { ...col, visible: !col.visible } : col
+    );
+    updateTableColumns("patients", updated);
+  };
+
+  const renderCellContent = (patient: Patient, colId: string) => {
+    switch (colId) {
+      case "patientInfo":
+        return (
+          <div>
+            <div className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+              {patient.name}
+            </div>
+            <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+              {patient.id} • {patient.phone}
+            </div>
+          </div>
+        );
+
+      case "doctor":
+        return <span className="text-slate-700 dark:text-slate-300">{patient.assignedDoctor}</span>;
+
+      case "stage":
+        return (
+          <Badge
+            className={
+              patient.onboardingStatus === "Active"
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                : patient.onboardingStatus === "Treatment completed"
+                ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            }
+          >
+            {patient.onboardingStatus}
+          </Badge>
+        );
+
+      case "intern":
+        return (
+          <span className="font-medium text-slate-800 dark:text-slate-200">
+            {patient.allottedIntern || (
+              <span className="text-amber-600 dark:text-amber-400 font-normal">Unassigned</span>
+            )}
+          </span>
+        );
+
+      case "nextSession": {
+        const targetDate =
+          patient.nextInfusionDate ||
+          (patient.sessions.length > 0 ? patient.sessions[patient.sessions.length - 1].date : null);
+        if (!targetDate) return <span className="text-slate-400">—</span>;
+        try {
+          const parsed = new Date(targetDate);
+          if (isNaN(parsed.getTime())) {
+            return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
+          }
+          return (
+            <span className="font-semibold text-blue-700 dark:text-blue-300">
+              {parsed.toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+              })}
+            </span>
+          );
+        } catch {
+          return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
+        }
+      }
+
+      case "paymentStatus":
+        return (
+          <Badge
+            className={
+              patient.paymentStatus === "Paid"
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                : patient.paymentStatus === "Pending"
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+            }
+          >
+            {patient.paymentStatus}
+          </Badge>
+        );
+
+      case "note":
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <AutoResizingNoteInput
+              value={patient.coordinationNotes || ""}
+              onChange={(val) => updatePatient(patient.id, { coordinationNotes: val })}
+            />
+          </div>
+        );
+
+      case "diagnosis":
+        return <span className="text-slate-700 dark:text-slate-300">{patient.diagnosis || "—"}</span>;
+
+      case "location":
+        return <span className="text-slate-600 dark:text-slate-400">{patient.location || "Main Hub"}</span>;
+
+      case "cost":
+        return (
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            ₹{(patient.costOfInfusion || 0).toLocaleString("en-IN")}
+          </span>
+        );
+
+      case "sessionsCount":
+        return (
+          <Badge variant="outline" className="text-xs font-mono">
+            {patient.completedSessionsCount || patient.sessions.length} / {patient.totalPlannedSessions || 6}
+          </Badge>
+        );
+
+      case "lastSession":
+        return <span className="text-slate-600 dark:text-slate-400">{patient.lastInfusionDate || "—"}</span>;
+
+      case "medicine":
+        return <span className="text-slate-700 dark:text-slate-300 font-medium">{patient.medicine || "—"}</span>;
+
+      case "contactName":
+        return <span className="text-slate-700 dark:text-slate-300">{patient.contactName || "—"}</span>;
+
+      case "assignedNurse":
+        return <span className="text-slate-700 dark:text-slate-300">{patient.assignedNurse || "—"}</span>;
+
+      case "nurseContact":
+        return <span className="font-mono text-slate-600 dark:text-slate-400">{patient.nurseContact || "—"}</span>;
+
+      case "supplier":
+        return <span className="text-slate-700 dark:text-slate-300">{patient.supplier || "—"}</span>;
+
+      case "supplierContact":
+        return <span className="font-mono text-slate-600 dark:text-slate-400">{patient.supplierContact || "—"}</span>;
+
+      case "ageGender":
+        return (
+          <span className="text-slate-600 dark:text-slate-400 font-medium">
+            {patient.age ? `${patient.age} yrs` : "—"} • {patient.gender}
+          </span>
+        );
+
+      case "dischargeSummaryStatus":
+        return (
+          <Badge variant="outline" className="text-[10px]">
+            {patient.dischargeSummaryStatus || "N/A"}
+          </Badge>
+        );
+
+      case "infusionStatus":
+        return (
+          <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-900">
+            {patient.infusionStatus || "—"}
+          </Badge>
+        );
+
+      default:
+        return <span className="text-slate-500">—</span>;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Bar */}
@@ -102,15 +283,49 @@ export const PatientsView: React.FC = () => {
             Manage active treatment profiles, leave notes, assign interns & monitor payment statuses.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setPatientToEdit(null);
-            setAddModalOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white gap-2 text-xs"
-        >
-          <Plus className="h-4 w-4" /> Add New Patient
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Columns Config Quick Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-slate-200 dark:border-slate-800">
+                <Columns className="h-3.5 w-3.5" /> Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 text-xs">
+              <DropdownMenuLabel className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                Visible Columns ({activeColumns.length})
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {patientColumns.map((col) => (
+                <DropdownMenuCheckboxItem
+                  key={col.id}
+                  checked={col.visible}
+                  onCheckedChange={() => toggleColumnVisibility(col.id)}
+                  className="text-xs"
+                >
+                  {col.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setActiveTab("masterdata")}
+                className="text-blue-600 dark:text-blue-400 font-medium text-xs gap-1.5 cursor-pointer"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" /> Rearrange in Master Data
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            onClick={() => {
+              setPatientToEdit(null);
+              setAddModalOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 text-xs"
+          >
+            <Plus className="h-4 w-4" /> Add New Patient
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -181,19 +396,21 @@ export const PatientsView: React.FC = () => {
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold uppercase tracking-wider">
               <tr>
-                <th className="p-3.5">Patient ID & Name</th>
-                <th className="p-3.5">Assigned Doctor</th>
-                <th className="p-3.5">Current Stage</th>
-                <th className="p-3.5">Assigned Intern</th>
-                <th className="p-3.5">Next Session</th>
-                <th className="p-3.5">Payment Status</th>
-                <th className="p-3.5 min-w-[260px] w-72">Note</th>
+                {activeColumns.map((col) => (
+                  <th
+                    key={col.id}
+                    className="p-3.5"
+                    style={{ minWidth: col.minWidth || "auto" }}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={activeColumns.length || 1} className="py-12 text-center text-slate-500">
                     No matching patients found.
                   </td>
                 </tr>
@@ -204,93 +421,11 @@ export const PatientsView: React.FC = () => {
                     onClick={() => navigate(`/departments/carcinome/patients/${patient.id}`)}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors cursor-pointer group"
                   >
-                    {/* Patient ID & Name */}
-                    <td className="p-3.5">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                        {patient.name}
-                      </div>
-                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                        {patient.id} • {patient.phone}
-                      </div>
-                    </td>
-
-                    {/* Doctor */}
-                    <td className="p-3.5 text-slate-700 dark:text-slate-300">
-                      {patient.assignedDoctor}
-                    </td>
-
-                    {/* Current Stage */}
-                    <td className="p-3.5">
-                      <Badge
-                        className={
-                          patient.onboardingStatus === "Active"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                            : patient.onboardingStatus === "Treatment completed"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                            : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                        }
-                      >
-                        {patient.onboardingStatus}
-                      </Badge>
-                    </td>
-
-                    {/* Assigned To */}
-                    <td className="p-3.5 font-medium text-slate-800 dark:text-slate-200">
-                      {patient.allottedIntern || (
-                        <span className="text-amber-600 dark:text-amber-400 font-normal">
-                          Unassigned
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Next Session */}
-                    <td className="p-3.5">
-                      {(() => {
-                        const targetDate =
-                          patient.nextInfusionDate ||
-                          (patient.sessions.length > 0 ? patient.sessions[patient.sessions.length - 1].date : null);
-                        if (!targetDate) return <span className="text-slate-400">—</span>;
-                        try {
-                          const parsed = new Date(targetDate);
-                          if (isNaN(parsed.getTime())) {
-                            return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
-                          }
-                          return (
-                            <span className="font-semibold text-blue-700 dark:text-blue-300">
-                              {parsed.toLocaleDateString("en-IN", {
-                                day: "numeric",
-                                month: "short",
-                              })}
-                            </span>
-                          );
-                        } catch {
-                          return <span className="font-semibold text-blue-700 dark:text-blue-300">{targetDate}</span>;
-                        }
-                      })()}
-                    </td>
-
-                    {/* Payment Status */}
-                    <td className="p-3.5">
-                      <Badge
-                        className={
-                          patient.paymentStatus === "Paid"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                            : patient.paymentStatus === "Pending"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                            : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
-                        }
-                      >
-                        {patient.paymentStatus}
-                      </Badge>
-                    </td>
-
-                    {/* Note Column */}
-                    <td className="p-3.5 min-w-[260px] w-72" onClick={(e) => e.stopPropagation()}>
-                      <AutoResizingNoteInput
-                        value={patient.coordinationNotes || ""}
-                        onChange={(val) => updatePatient(patient.id, { coordinationNotes: val })}
-                      />
-                    </td>
+                    {activeColumns.map((col) => (
+                      <td key={col.id} className="p-3.5">
+                        {renderCellContent(patient, col.id)}
+                      </td>
+                    ))}
                   </tr>
                 ))
               )}

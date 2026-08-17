@@ -359,19 +359,30 @@ function TaskCard({
 
         <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
           <span>{task.assignee}</span>
-          <Select
-            value={task.status}
-            onValueChange={(val: Task["status"]) => onStatusChange(task.id, val)}
-          >
-            <SelectTrigger className="w-28 h-6 text-[10px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="In Progress">In Progress</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={task.status}
+              onValueChange={(val: Task["status"]) => onStatusChange(task.id, val)}
+            >
+              <SelectTrigger className="w-28 h-6 text-[10px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+              onClick={() => onDelete(task.id)}
+              title="Delete Task"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

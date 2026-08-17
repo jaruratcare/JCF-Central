@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Search, Filter, Plus, IndianRupee, CheckCircle2, Clock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Calendar, Search, Columns, CheckCircle2, Clock, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,17 +12,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCarcinome } from "../context/CarcinomeContext";
+import { getActiveColumns } from "../data/table-columns";
 import type { PaymentStatus } from "../data/dummy-data";
 
 export const SessionsView: React.FC = () => {
   const navigate = useNavigate();
-  const { patients, updatePaymentStatus } = useCarcinome();
+  const { patients, updatePaymentStatus, deleteSession, tableColumns, updateTableColumns, setActiveTab } = useCarcinome();
 
   const [search, setSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const sessionColumns = tableColumns.sessions || [];
+  const activeColumns = useMemo(() => getActiveColumns(sessionColumns), [sessionColumns]);
 
   const allSessions = useMemo(() => {
     return patients.flatMap((p) =>
@@ -93,6 +106,119 @@ export const SessionsView: React.FC = () => {
   const pendingCount = allSessions.filter((s) => s.paymentStatus === "Pending").length;
   const insuranceCount = allSessions.filter((s) => s.paymentStatus === "Insurance Processing").length;
 
+  const toggleColumnVisibility = (id: string) => {
+    const updated = sessionColumns.map((col) =>
+      col.id === id ? { ...col, visible: !col.visible } : col
+    );
+    updateTableColumns("sessions", updated);
+  };
+
+  const renderCellContent = (s: any, colId: string) => {
+    switch (colId) {
+      case "date":
+        return <span className="font-semibold text-slate-900 dark:text-slate-100">{s.date}</span>;
+
+      case "patientInfo":
+        return (
+          <span className="font-medium text-blue-600 dark:text-blue-400">
+            {s.patientName}{" "}
+            <span className="text-[11px] text-slate-400 font-mono">({s.patientId})</span>
+          </span>
+        );
+
+      case "nurse":
+        return (
+          <span className="text-slate-700 dark:text-slate-300">
+            {s.nurse || "—"} {s.nurseCost ? `(₹${s.nurseCost})` : ""}
+          </span>
+        );
+
+      case "supplier":
+        return (
+          <span className="text-slate-700 dark:text-slate-300">
+            {s.supplier || "—"} {s.supplierCost ? `(₹${s.supplierCost})` : ""}
+          </span>
+        );
+
+      case "amount":
+        return (
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {s.totalAmount ? `₹${s.totalAmount.toLocaleString("en-IN")}` : "—"}
+          </span>
+        );
+
+      case "paymentStatus":
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={s.paymentStatus || "Pending"}
+              onValueChange={(val: PaymentStatus) =>
+                updatePaymentStatus(s.patientId, val, s.sessionIndex)
+              }
+            >
+              <SelectTrigger className="w-36 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Paid">Paid</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                <SelectItem value="Insurance Processing">Insurance Processing</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        );
+
+      case "pdf":
+        return (
+          <div className="space-x-1">
+            {s.billGenerated && (
+              <Badge variant="outline" className="text-blue-600 border-blue-300 text-[10px]">
+                Bill Gen
+              </Badge>
+            )}
+            {s.dischargeSummaryPdf && (
+              <Badge variant="outline" className="text-purple-600 border-purple-300 text-[10px]">
+                PDF Attached
+              </Badge>
+            )}
+            {!s.billGenerated && !s.dischargeSummaryPdf && <span className="text-slate-400">—</span>}
+          </div>
+        );
+
+      case "doctor":
+        return <span className="text-slate-700 dark:text-slate-300">{s.doctor || "—"}</span>;
+
+      case "cycle":
+        return (
+          <Badge variant="secondary" className="font-mono text-xs">
+            Cycle #{s.sessionIndex + 1}
+          </Badge>
+        );
+
+      case "notes":
+        return <span className="text-slate-600 dark:text-slate-400">{s.notes || "—"}</span>;
+
+      case "actions":
+        return (
+          <div className="text-right" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+              onClick={() => deleteSession(s.patientId, s.sessionIndex)}
+              title="Delete session"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        );
+
+      default:
+        return <span className="text-slate-500">—</span>;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Bar */}
@@ -104,6 +230,39 @@ export const SessionsView: React.FC = () => {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Complete operational log of chemotherapy infusions, nursing visits, and billing status.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Columns Quick Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-slate-200 dark:border-slate-800">
+                <Columns className="h-3.5 w-3.5" /> Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 text-xs">
+              <DropdownMenuLabel className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                Visible Columns ({activeColumns.length})
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {sessionColumns.map((col) => (
+                <DropdownMenuCheckboxItem
+                  key={col.id}
+                  checked={col.visible}
+                  onCheckedChange={() => toggleColumnVisibility(col.id)}
+                  className="text-xs"
+                >
+                  {col.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setActiveTab("masterdata")}
+                className="text-blue-600 dark:text-blue-400 font-medium text-xs gap-1.5 cursor-pointer"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" /> Rearrange in Master Data
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -228,19 +387,21 @@ export const SessionsView: React.FC = () => {
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold uppercase tracking-wider">
               <tr>
-                <th className="p-3.5">Session Date</th>
-                <th className="p-3.5">Patient Name</th>
-                <th className="p-3.5">Assigned Nurse</th>
-                <th className="p-3.5">Pharma Supplier</th>
-                <th className="p-3.5">Billed Amount</th>
-                <th className="p-3.5">Payment Status</th>
-                <th className="p-3.5">Bill / Discharge PDF</th>
+                {activeColumns.map((col) => (
+                  <th
+                    key={col.id}
+                    className="p-3.5"
+                    style={{ minWidth: col.minWidth || "auto" }}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {sortedSessions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={activeColumns.length || 1} className="py-12 text-center text-slate-500">
                     No matching infusion sessions found.
                   </td>
                 </tr>
@@ -253,52 +414,11 @@ export const SessionsView: React.FC = () => {
                     }}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors cursor-pointer"
                   >
-                    <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">
-                      {s.date}
-                    </td>
-                    <td className="p-3.5 font-medium text-blue-600 dark:text-blue-400">
-                      {s.patientName}{" "}
-                      <span className="text-[11px] text-slate-400 font-mono">({s.patientId})</span>
-                    </td>
-                    <td className="p-3.5 text-slate-700 dark:text-slate-300">
-                      {s.nurse || "—"} {s.nurseCost ? `(₹${s.nurseCost})` : ""}
-                    </td>
-                    <td className="p-3.5 text-slate-700 dark:text-slate-300">
-                      {s.supplier || "—"} {s.supplierCost ? `(₹${s.supplierCost})` : ""}
-                    </td>
-                    <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">
-                      {s.totalAmount ? `₹${s.totalAmount.toLocaleString("en-IN")}` : "—"}
-                    </td>
-                    <td className="p-3.5" onClick={(e) => e.stopPropagation()}>
-                      <Select
-                        value={s.paymentStatus || "Pending"}
-                        onValueChange={(val: PaymentStatus) =>
-                          updatePaymentStatus(s.patientId, val, s.sessionIndex)
-                        }
-                      >
-                        <SelectTrigger className="w-36 h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Paid">Paid</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Partially Paid">Partially Paid</SelectItem>
-                          <SelectItem value="Insurance Processing">Insurance Processing</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="p-3.5 space-x-1">
-                      {s.billGenerated && (
-                        <Badge variant="outline" className="text-blue-600 border-blue-300 text-[10px]">
-                          Bill Gen
-                        </Badge>
-                      )}
-                      {s.dischargeSummaryPdf && (
-                        <Badge variant="outline" className="text-purple-600 border-purple-300 text-[10px]">
-                          PDF Attached
-                        </Badge>
-                      )}
-                    </td>
+                    {activeColumns.map((col) => (
+                      <td key={col.id} className="p-3.5">
+                        {renderCellContent(s, col.id)}
+                      </td>
+                    ))}
                   </tr>
                 ))
               )}

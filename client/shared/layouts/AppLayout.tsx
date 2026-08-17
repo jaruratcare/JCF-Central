@@ -34,53 +34,59 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:relative z-40 h-screen w-64 bg-gradient-to-b from-slate-950 via-blue-950/95 to-slate-900 text-sidebar-foreground transition-transform duration-300 flex flex-col shadow-2xl shadow-blue-950/30
+          fixed lg:sticky top-0 z-40 h-screen w-64 flex-shrink-0 bg-sky-100/90 text-slate-900 border-r border-sky-300/80 transition-transform duration-300 flex flex-col shadow-md
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         `}
       >
-        <div className="p-6 border-b border-white/10 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500">
-          <div className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-blue-50/90">
-            <span className="mr-2 h-2 w-2 rounded-full bg-cyan-300" />
+        <div className="p-6 border-b border-sky-300/80 bg-sky-200/80">
+          <div className="inline-flex items-center rounded-full bg-blue-600/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-blue-950 border border-blue-300/60">
+            <span className="mr-2 h-2 w-2 rounded-full bg-blue-600" />
             Operations Hub
           </div>
-          <h1 className="mt-3 text-2xl font-bold text-white">JCF</h1>
-          <p className="mt-1 text-xs text-blue-50/90">Central Hub</p>
+          <h1 className="mt-3 text-2xl font-bold text-blue-950">JCF</h1>
+          <p className="mt-1 text-xs text-blue-800/80 font-medium">Central Hub</p>
         </div>
 
-        <nav className="flex-1 overflow-auto p-3 space-y-1.5">
-          <button
-            onClick={() => navigate(`/departments/${user?.department}`)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left text-sm font-medium text-blue-50/90 hover:bg-white/10 hover:text-white"
-          >
-            <Home className="w-5 h-5" />
-            <span>Dashboard</span>
-          </button>
+        <nav className="flex-1 overflow-y-auto p-3 flex flex-col justify-between">
+          <div className="space-y-1.5 flex-1">
+            {!secondaryNav && (
+              <button
+                onClick={() => navigate(`/departments/${user?.department}`)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent transition-all text-left text-sm font-medium text-slate-800 hover:bg-sky-200/70 hover:text-blue-950"
+              >
+                <Home className="w-4 h-4 text-slate-600" />
+                <span>Dashboard</span>
+              </button>
+            )}
 
-          <button
-            onClick={() => navigate('/settings')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left text-sm font-medium text-blue-50/90 hover:bg-white/10 hover:text-white"
-          >
-            <Settings className="w-5 h-5" />
-            <span>Settings</span>
-          </button>
+            {secondaryNav}
+          </div>
 
-          {secondaryNav}
+          <div className="pt-3 mt-auto border-t border-sky-300/70 space-y-1">
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent transition-all text-left text-sm font-medium text-slate-800 hover:bg-sky-200/70 hover:text-blue-950"
+            >
+              <Settings className="w-4 h-4 text-slate-600" />
+              <span>Settings</span>
+            </button>
+          </div>
         </nav>
 
-        <div className="border-t border-white/10 p-4 bg-gradient-to-t from-blue-950/80">
+        <div className="border-t border-sky-300/80 p-4 bg-sky-200/70">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent/30 transition-all text-left">
-                <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-sidebar-accent">
-                  <AvatarFallback className="text-xs font-bold bg-sidebar-primary text-sidebar-primary-foreground">
+              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sky-300/50 transition-all text-left">
+                <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-blue-500/50">
+                  <AvatarFallback className="text-xs font-bold bg-blue-600 text-white">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-xs font-semibold text-sidebar-foreground truncate">{user?.firstName} {user?.lastName}</p>
-                  <p className="text-[10px] text-sidebar-foreground/70 truncate capitalize">{user?.department}</p>
+                  <p className="text-xs font-bold text-slate-900 truncate">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-[10px] text-blue-900/80 truncate capitalize font-medium">{user?.department}</p>
                 </div>
-                <ChevronDown className="h-3 w-3 flex-shrink-0 text-sidebar-foreground/60" />
+                <ChevronDown className="h-3 w-3 flex-shrink-0 text-slate-600" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="w-52">
@@ -101,7 +107,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
         </div>
       </aside>
 
-
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
@@ -111,7 +116,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, departmentName, 
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top Navigation */}
         <header className="shadow-sm bg-card border-b border-border">
           <div className="flex items-center justify-between p-6">

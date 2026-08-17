@@ -30,8 +30,8 @@ const CARCINOME_NAV_ITEMS = [
 
 export const CarcinomeNav: React.FC<CarcinomeNavProps> = ({ activeTab, onTabChange }) => {
   return (
-    <div className="space-y-2">
-      <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-blue-200/80">
+    <div className="space-y-1">
+      <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-blue-950">
         Carcinome Ops
       </div>
       {CARCINOME_NAV_ITEMS.map((item) => {
@@ -43,13 +43,13 @@ export const CarcinomeNav: React.FC<CarcinomeNavProps> = ({ activeTab, onTabChan
             onClick={() => onTabChange(item.id)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left text-sm font-medium ${
               isActive
-                ? "border-blue-300/60 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white shadow-sm"
-                : "border-transparent text-sidebar-foreground/80 hover:border-white/10 hover:bg-white/[0.06] hover:text-sidebar-foreground"
+                ? "border-blue-600 bg-blue-600 text-white shadow-sm font-semibold"
+                : "border-transparent text-slate-800 hover:border-sky-300/60 hover:bg-sky-200/70 hover:text-blue-950"
             }`}
           >
             <Icon className={`h-4 w-4 flex-shrink-0 transition-all ${isActive ? "scale-110" : ""}`} />
             <span className="truncate">{item.label}</span>
-            {isActive && <div className="ml-auto h-2 w-2 rounded-full bg-white/80" />}
+            {isActive && <div className="ml-auto h-2 w-2 rounded-full bg-white/90" />}
           </button>
         );
       })}
