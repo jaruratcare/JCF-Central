@@ -583,7 +583,7 @@ const NursingTab: React.FC<{
         </DialogContent>
       </Dialog>
 
-      {/* Nursing Charges Log */}
+      {/* Nursing Charges Log (Disabled as per user request)
       <Card className="border-slate-200 dark:border-slate-800">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <div>
@@ -645,6 +645,7 @@ const NursingTab: React.FC<{
           </div>
         </CardContent>
       </Card>
+      */}
 
       {/* Add / Edit Charge Dialog */}
       <Dialog open={addChargeOpen || editingCharge !== null} onOpenChange={(open) => { if (!open) { setAddChargeOpen(false); setEditingCharge(null); } }}>

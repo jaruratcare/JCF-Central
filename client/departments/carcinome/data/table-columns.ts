@@ -13,6 +13,7 @@ export interface TableColumnsState {
   patients: ColumnConfig[];
   sessions: ColumnConfig[];
   payments: ColumnConfig[];
+  outreach: ColumnConfig[];
 }
 
 export const ALL_AVAILABLE_PATIENT_FIELDS: Omit<ColumnConfig, "order" | "visible">[] = [
@@ -66,6 +67,20 @@ export const ALL_AVAILABLE_PAYMENT_FIELDS: Omit<ColumnConfig, "order" | "visible
   { id: "phone", label: "Patient Phone", minWidth: "120px", description: "Patient phone contact" },
 ];
 
+export const ALL_AVAILABLE_OUTREACH_FIELDS: Omit<ColumnConfig, "order" | "visible">[] = [
+  { id: "id", label: "ID", minWidth: "90px", description: "Unique outreach record ID" },
+  { id: "doctorName", label: "Doctor & Specialisation", minWidth: "180px", description: "Doctor name & oncology specialty" },
+  { id: "hospital", label: "Hospital / Clinic", minWidth: "180px", description: "Hospital affiliation & tag" },
+  { id: "contactNumber", label: "Contact Number", minWidth: "130px", description: "Doctor / clinic phone contact" },
+  { id: "email", label: "Email Address", minWidth: "160px", description: "Doctor email address" },
+  { id: "outreachStage", label: "Outreach Stage", minWidth: "140px", description: "Current stage of outreach workflow" },
+  { id: "status", label: "Response Status", minWidth: "140px", description: "Outreach response status" },
+  { id: "outreachDoneBy", label: "Outreach Done By", minWidth: "130px", description: "Assigned intern / team member" },
+  { id: "lastOutreachDate", label: "Last Contact Date", minWidth: "120px", description: "Date of last outreach contact" },
+  { id: "notes", label: "Notes & Details", minWidth: "200px", description: "Outreach notes & decline reasons" },
+  { id: "actions", label: "Actions", minWidth: "90px", align: "right", description: "Edit / delete actions" },
+];
+
 export const DEFAULT_PATIENT_COLUMNS: ColumnConfig[] = [
   { id: "patientInfo", label: "Patient ID & Name", visible: true, order: 0, minWidth: "200px", description: "Patient name, ID & phone number" },
   { id: "doctor", label: "Assigned Doctor", visible: true, order: 1, minWidth: "140px", description: "Attending oncologist/physician" },
@@ -107,10 +122,25 @@ export const DEFAULT_PAYMENT_COLUMNS: ColumnConfig[] = [
   { id: "supplier", label: "Pharma Supplier", visible: false, order: 8, minWidth: "140px", description: "Pharma distributor" },
 ];
 
+export const DEFAULT_OUTREACH_COLUMNS: ColumnConfig[] = [
+  { id: "id", label: "ID", visible: true, order: 0, minWidth: "90px", description: "Unique outreach record ID" },
+  { id: "doctorName", label: "Doctor & Specialisation", visible: true, order: 1, minWidth: "180px", description: "Doctor name & oncology specialty" },
+  { id: "hospital", label: "Hospital / Clinic", visible: true, order: 2, minWidth: "180px", description: "Hospital affiliation & tag" },
+  { id: "contactNumber", label: "Contact Number", visible: true, order: 3, minWidth: "130px", description: "Doctor / clinic phone contact" },
+  { id: "outreachStage", label: "Outreach Stage", visible: true, order: 4, minWidth: "140px", description: "Current stage of outreach workflow" },
+  { id: "status", label: "Response Status", visible: true, order: 5, minWidth: "140px", description: "Outreach response status" },
+  { id: "outreachDoneBy", label: "Outreach Done By", visible: true, order: 6, minWidth: "130px", description: "Assigned intern / team member" },
+  { id: "notes", label: "Outreach Note", visible: true, order: 7, minWidth: "260px", description: "Inline editable notes & follow-up log" },
+  { id: "actions", label: "Actions", visible: true, order: 8, minWidth: "90px", align: "right", description: "Edit / delete action buttons" },
+  { id: "lastOutreachDate", label: "Last Contact Date", visible: false, order: 9, minWidth: "120px", description: "Date of last outreach contact" },
+  { id: "email", label: "Email Address", visible: false, order: 10, minWidth: "160px", description: "Doctor email address" },
+];
+
 export const DEFAULT_TABLE_COLUMNS: TableColumnsState = {
   patients: DEFAULT_PATIENT_COLUMNS,
   sessions: DEFAULT_SESSION_COLUMNS,
   payments: DEFAULT_PAYMENT_COLUMNS,
+  outreach: DEFAULT_OUTREACH_COLUMNS,
 };
 
 const STORAGE_KEY = "carcinome_table_columns_config";
@@ -124,6 +154,7 @@ export function loadSavedTableColumns(): TableColumnsState {
         patients: syncColumns(parsed.patients, DEFAULT_PATIENT_COLUMNS),
         sessions: syncColumns(parsed.sessions, DEFAULT_SESSION_COLUMNS),
         payments: syncColumns(parsed.payments, DEFAULT_PAYMENT_COLUMNS),
+        outreach: syncColumns(parsed.outreach, DEFAULT_OUTREACH_COLUMNS),
       };
     }
   } catch (e) {

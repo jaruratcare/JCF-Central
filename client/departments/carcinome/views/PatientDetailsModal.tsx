@@ -189,12 +189,14 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({ patien
                 >
                   <MessageSquare className="h-3.5 w-3.5" /> Notes ({patientNotes.length})
                 </TabsTrigger>
+                {/* Audit Log Tab disabled as per user request
                 <TabsTrigger
                   value="activity"
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 border-b-2 data-[state=active]:border-blue-600 rounded-none px-4 text-xs gap-1.5"
                 >
                   <Activity className="h-3.5 w-3.5" /> Audit Log ({patientLogs.length})
                 </TabsTrigger>
+                */}
               </TabsList>
             </div>
 
@@ -617,7 +619,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({ patien
               </div>
             </TabsContent>
 
-            {/* TAB 6: ACTIVITY */}
+            {/* TAB 6: ACTIVITY (Disabled as per user request)
             <TabsContent value="activity" className="p-6 space-y-4">
               <div className="space-y-3">
                 {patientLogs.length === 0 ? (
@@ -642,6 +644,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({ patien
                 )}
               </div>
             </TabsContent>
+            */}
           </Tabs>
         </DialogContent>
       </Dialog>

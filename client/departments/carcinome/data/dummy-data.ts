@@ -563,7 +563,20 @@ export interface Task {
 
 export interface MasterDataItem {
   id: string;
-  category: "Doctor" | "Supplier" | "Assignee" | "SessionType" | "PatientStatus" | "PaymentStatus" | "Diagnosis" | "Location" | "PaymentMode";
+  category:
+    | "Doctor"
+    | "Supplier"
+    | "Assignee"
+    | "SessionType"
+    | "PatientStatus"
+    | "PaymentStatus"
+    | "Diagnosis"
+    | "Location"
+    | "PaymentMode"
+    | "OutreachStage"
+    | "OutreachStatus"
+    | "Hospital"
+    | "Specialisation";
   value: string;
   label: string;
   description?: string;
@@ -600,6 +613,10 @@ export const initialMasterData: MasterDataItem[] = [
   { id: "md-asg-2", category: "Assignee", value: "Soumyaparna", label: "Soumyaparna", description: "Operations Intern", active: true },
   { id: "md-asg-3", category: "Assignee", value: "Vanya", label: "Vanya", description: "Operations Intern", active: true },
   { id: "md-asg-4", category: "Assignee", value: "Aadya", label: "Aadya", description: "Operations Intern", active: true },
+  { id: "md-asg-5", category: "Assignee", value: "Subhiksha", label: "Subhiksha", description: "Outreach Lead Intern", active: true },
+  { id: "md-asg-6", category: "Assignee", value: "Lahari", label: "Lahari", description: "Outreach Lead Intern", active: true },
+  { id: "md-asg-7", category: "Assignee", value: "Shamita", label: "Shamita", description: "Outreach Intern", active: true },
+  { id: "md-asg-8", category: "Assignee", value: "Kalyani", label: "Kalyani", description: "Outreach Intern", active: true },
 
   // Session Types
   { id: "md-st-1", category: "SessionType", value: "Chemotherapy Infusion", label: "Chemotherapy Infusion", active: true },
@@ -635,6 +652,44 @@ export const initialMasterData: MasterDataItem[] = [
   { id: "md-loc-2", category: "Location", value: "Khar W., Mumbai", label: "Khar West, Mumbai", active: true },
   { id: "md-loc-3", category: "Location", value: "Juhu, Mumbai", label: "Juhu, Mumbai", active: true },
   { id: "md-loc-4", category: "Location", value: "Kalbadevi, Mumbai", label: "Kalbadevi, Mumbai", active: true },
+
+  // Outreach Stages
+  { id: "md-os-1", category: "OutreachStage", value: "Initial", label: "Initial", active: true },
+  { id: "md-os-2", category: "OutreachStage", value: "1st follow up", label: "1st follow up", active: true },
+  { id: "md-os-3", category: "OutreachStage", value: "2nd follow up", label: "2nd follow up", active: true },
+  { id: "md-os-4", category: "OutreachStage", value: "3rd follow up", label: "3rd follow up", active: true },
+  { id: "md-os-5", category: "OutreachStage", value: "Subsequent Follow-up", label: "Subsequent Follow-up", active: true },
+  { id: "md-os-6", category: "OutreachStage", value: "Collaboration Established/to be finalized", label: "Collaboration Established / Finalized", active: true },
+  { id: "md-os-7", category: "OutreachStage", value: "Unresponsive", label: "Unresponsive Stage", active: true },
+
+  // Outreach Statuses
+  { id: "md-ost-1", category: "OutreachStatus", value: "Positive Response", label: "Positive Response", active: true },
+  { id: "md-ost-2", category: "OutreachStatus", value: "Shared the Details", label: "Shared Details", active: true },
+  { id: "md-ost-3", category: "OutreachStatus", value: "Busy/ Did not attend the call", label: "Busy / Did not attend call", active: true },
+  { id: "md-ost-4", category: "OutreachStatus", value: "Awaiting Response", label: "Awaiting Response", active: true },
+  { id: "md-ost-5", category: "OutreachStatus", value: "Unresponsive", label: "Unresponsive", active: true },
+  { id: "md-ost-6", category: "OutreachStatus", value: "Declined", label: "Declined", active: true },
+  { id: "md-ost-7", category: "OutreachStatus", value: "wrong number", label: "Wrong Number", active: true },
+
+  // Hospitals & Clinics
+  { id: "md-hosp-1", category: "Hospital", value: "Apollo", label: "Apollo Cancer Centre", active: true },
+  { id: "md-hosp-2", category: "Hospital", value: "Jaslok", label: "Jaslok Hospital", active: true },
+  { id: "md-hosp-3", category: "Hospital", value: "Lilavati", label: "Lilavati Hospital & Research Centre", active: true },
+  { id: "md-hosp-4", category: "Hospital", value: "Kokilaben", label: "Kokilaben Dhirubhai Ambani Hospital", active: true },
+  { id: "md-hosp-5", category: "Hospital", value: "HCG", label: "HCG Cancer Centre", active: true },
+  { id: "md-hosp-6", category: "Hospital", value: "SL Raheja - Fortis ", label: "S.L. Raheja Hospital (Fortis)", active: true },
+  { id: "md-hosp-7", category: "Hospital", value: "Asian Institute of Oncology", label: "Asian Institute of Oncology", active: true },
+  { id: "md-hosp-8", category: "Hospital", value: "Max Nanavati", label: "Nanavati Max Healthcare", active: true },
+  { id: "md-hosp-9", category: "Hospital", value: "Bombay Hospital", label: "Bombay Hospital", active: true },
+  { id: "md-hosp-10", category: "Hospital", value: "Breach Candy", label: "Breach Candy Hospital", active: true },
+  { id: "md-hosp-11", category: "Hospital", value: "POSITIVES", label: "POSITIVES Master List", active: true },
+
+  // Specialisations
+  { id: "md-sp-1", category: "Specialisation", value: "Surgical Oncologist", label: "Surgical Oncology", active: true },
+  { id: "md-sp-2", category: "Specialisation", value: "Medical Oncologist", label: "Medical Oncology", active: true },
+  { id: "md-sp-3", category: "Specialisation", value: "Haematology & Bone Marrow Transplant", label: "Haematology & BMT", active: true },
+  { id: "md-sp-4", category: "Specialisation", value: "Radiation Oncology", label: "Radiation Oncology", active: true },
+  { id: "md-sp-5", category: "Specialisation", value: "Pediatric Oncology", label: "Pediatric Oncology", active: true },
 ];
 
 // ─── Initial Tasks ──────────────────────────────────────────────────────────

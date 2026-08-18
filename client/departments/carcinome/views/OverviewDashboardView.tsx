@@ -457,7 +457,7 @@ export const OverviewDashboardView: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Recent Audit Log Snippets */}
+          {/* Recent Audit Log Snippets (Disabled as per user request)
           <Card className="border-slate-200 dark:border-slate-800">
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -485,6 +485,7 @@ export const OverviewDashboardView: React.FC = () => {
               ))}
             </CardContent>
           </Card>
+          */}
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   Trash2,
   Check,
+  Building2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,12 +47,16 @@ import {
   ALL_AVAILABLE_PATIENT_FIELDS,
   ALL_AVAILABLE_SESSION_FIELDS,
   ALL_AVAILABLE_PAYMENT_FIELDS,
+  ALL_AVAILABLE_OUTREACH_FIELDS,
 } from "../data/table-columns";
 
 type ExtendedCategory = MasterDataItem["category"] | "TableColumns";
 
 const CATEGORIES: { key: ExtendedCategory; label: string; icon: any }[] = [
   { key: "TableColumns", label: "Table Columns & Layout", icon: Columns },
+  { key: "Specialisation", label: "Oncology Specialisations", icon: Stethoscope },
+  { key: "OutreachStage", label: "Outreach Workflow Stages", icon: Tag },
+  { key: "OutreachStatus", label: "Outreach Response Statuses", icon: Tag },
   { key: "Doctor", label: "Doctors & Oncologists", icon: Stethoscope },
   { key: "Supplier", label: "Pharma Suppliers", icon: Truck },
   { key: "Assignee", label: "Operations Assignees (Interns)", icon: Users },
@@ -78,7 +83,9 @@ export const TableColumnsManager: React.FC = () => {
       ? ALL_AVAILABLE_PATIENT_FIELDS
       : selectedTabKey === "sessions"
       ? ALL_AVAILABLE_SESSION_FIELDS
-      : ALL_AVAILABLE_PAYMENT_FIELDS;
+      : selectedTabKey === "payments"
+      ? ALL_AVAILABLE_PAYMENT_FIELDS
+      : ALL_AVAILABLE_OUTREACH_FIELDS;
 
   const handleToggleVisible = (id: string) => {
     const newColumns = currentColumns.map((col) =>
@@ -146,6 +153,7 @@ export const TableColumnsManager: React.FC = () => {
             { key: "patients", label: "Patients Directory Table" },
             { key: "sessions", label: "Infusion Sessions Ledger" },
             { key: "payments", label: "Financial Payments Table" },
+            { key: "outreach", label: "Oncologist Outreach Table" },
           ].map((tab) => (
             <Button
               key={tab.key}

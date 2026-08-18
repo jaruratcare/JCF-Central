@@ -9,6 +9,7 @@ import {
   type PatientNote,
   type PaymentStatus,
 } from "../data/dummy-data";
+import { type OncologistOutreach } from "../data/outreach-data";
 import {
   type ColumnConfig,
   type TableColumnsState,
@@ -24,6 +25,7 @@ interface CarcinomeContextType {
   auditLogs: AuditLogEntry[];
   documents: PatientDocument[];
   notes: PatientNote[];
+  outreachEntries: OncologistOutreach[];
   selectedPatientId: string | null;
   setSelectedPatientId: (id: string | null) => void;
   activeTab: string;
@@ -63,6 +65,11 @@ interface CarcinomeContextType {
   // Notes & Documents
   addNote: (patientId: string, content: string) => Promise<void>;
   addDocument: (patientId: string, file: { name: string; fileType: "pdf" | "image" | "doc"; size: string }) => Promise<void>;
+
+  // Outreach CRUD
+  addOutreachEntry: (data: Omit<OncologistOutreach, "id">) => Promise<void>;
+  updateOutreachEntry: (id: string, updates: Partial<OncologistOutreach>) => Promise<void>;
+  deleteOutreachEntry: (id: string) => Promise<void>;
 }
 
 const CarcinomeContext = createContext<CarcinomeContextType | undefined>(undefined);
@@ -74,6 +81,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
   const [notes, setNotes] = useState<PatientNote[]>([]);
+  const [outreachEntries, setOutreachEntries] = useState<OncologistOutreach[]>([]);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -134,12 +142,13 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setPatients(pData.patients || []);
       }
 
-      const [tRes, mdRes, nRes, dRes, aRes] = await Promise.all([
+      const [tRes, mdRes, nRes, dRes, aRes, oRes] = await Promise.all([
         fetch("/api/carcinome/tasks"),
         fetch("/api/carcinome/master-data"),
         fetch("/api/carcinome/notes"),
         fetch("/api/carcinome/documents"),
         fetch("/api/carcinome/audit-logs"),
+        fetch("/api/carcinome/outreach"),
       ]);
 
       if (tRes.ok) setTasks((await tRes.json()).tasks || []);
@@ -147,6 +156,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (nRes.ok) setNotes((await nRes.json()).notes || []);
       if (dRes.ok) setDocuments((await dRes.json()).documents || []);
       if (aRes.ok) setAuditLogs((await aRes.json()).auditLogs || []);
+      if (oRes.ok) setOutreachEntries((await oRes.json()).outreach || []);
 
     } catch (err: any) {
       console.error("Failed to load Carcinome database data:", err);
@@ -522,6 +532,54 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const addOutreachEntry = async (data: Omit<OncologistOutreach, "id">) => {
+    try {
+      const res = await fetch("/api/carcinome/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.item) {
+          setOutreachEntries((prev) => [result.item, ...prev]);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to add outreach entry:", e);
+    }
+  };
+
+  const updateOutreachEntry = async (id: string, updates: Partial<OncologistOutreach>) => {
+    try {
+      const res = await fetch(`/api/carcinome/outreach/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        setOutreachEntries((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+        );
+      }
+    } catch (e) {
+      console.error("Failed to update outreach entry:", e);
+    }
+  };
+
+  const deleteOutreachEntry = async (id: string) => {
+    try {
+      const res = await fetch(`/api/carcinome/outreach/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setOutreachEntries((prev) => prev.filter((item) => item.id !== id));
+      }
+    } catch (e) {
+      console.error("Failed to delete outreach entry:", e);
+    }
+  };
+
   return (
     <CarcinomeContext.Provider
       value={{
@@ -531,6 +589,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         auditLogs,
         documents,
         notes,
+        outreachEntries,
         selectedPatientId,
         setSelectedPatientId,
         activeTab,
@@ -562,6 +621,10 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         addNote,
         addDocument,
+
+        addOutreachEntry,
+        updateOutreachEntry,
+        deleteOutreachEntry,
       }}
     >
       {children}

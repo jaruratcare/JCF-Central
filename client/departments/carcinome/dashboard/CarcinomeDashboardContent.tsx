@@ -8,6 +8,7 @@ import { TasksView } from "../views/TasksView";
 import { PaymentsView } from "../views/PaymentsView";
 import { BillingView } from "../views/BillingView";
 import { ReportsView } from "../views/ReportsView";
+import { OutreachTrackerView } from "../views/OutreachTrackerView";
 import { MasterDataView } from "../views/MasterDataView";
 import { AuditLogView } from "../views/AuditLogView";
 import { PatientDetailsView } from "../views/PatientDetailsView";
@@ -38,6 +39,7 @@ function CarcinomeDashboardInner() {
           <Route path="/billing" element={<BillingView />} />
           <Route path="/payments" element={<PaymentsView />} />
           <Route path="/reports" element={<ReportsView />} />
+          <Route path="/outreach" element={<OutreachTrackerView />} />
           <Route path="/master-data" element={<MasterDataView />} />
           <Route path="/audit" element={<AuditLogView />} />
           <Route path="*" element={<Navigate to="/departments/carcinome/dashboard" replace />} />

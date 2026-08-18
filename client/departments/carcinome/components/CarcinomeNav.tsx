@@ -9,6 +9,7 @@ import {
   BarChart3,
   Database,
   Activity,
+  Stethoscope,
 } from "lucide-react";
 
 interface CarcinomeNavProps {
@@ -24,8 +25,9 @@ const CARCINOME_NAV_ITEMS = [
   { id: "billing", label: "Billing", icon: Receipt },
   { id: "payments", label: "Payments", icon: IndianRupee },
   { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "outreach", label: "Outreach Tracker", icon: Stethoscope },
   { id: "master-data", label: "Master Data", icon: Database },
-  { id: "audit", label: "Audit Log", icon: Activity },
+  // { id: "audit", label: "Audit Log", icon: Activity },
 ];
 
 export const CarcinomeNav: React.FC<CarcinomeNavProps> = ({ activeTab, onTabChange }) => {

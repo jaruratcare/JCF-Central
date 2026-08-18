@@ -24,6 +24,8 @@ function CarcinomaDashboardWithNav() {
       setActiveTab('payments');
     } else if (path.includes('/reports')) {
       setActiveTab('reports');
+    } else if (path.includes('/outreach')) {
+      setActiveTab('outreach');
     } else if (path.includes('/master-data')) {
       setActiveTab('master-data');
     } else if (path.includes('/audit')) {
@@ -44,6 +46,7 @@ function CarcinomaDashboardWithNav() {
       billing: '/departments/carcinome/billing',
       payments: '/departments/carcinome/payments',
       reports: '/departments/carcinome/reports',
+      outreach: '/departments/carcinome/outreach',
       'master-data': '/departments/carcinome/master-data',
       audit: '/departments/carcinome/audit',
     };

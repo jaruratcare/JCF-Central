@@ -25,6 +25,12 @@ import {
 import { handleGetNotes, handleAddNote } from "./notes";
 import { handleGetDocuments, handleAddDocument } from "./documents";
 import { handleGetAuditLogs, handleAddAuditLog } from "./audit";
+import {
+  handleGetOutreach,
+  handleAddOutreach,
+  handleUpdateOutreach,
+  handleDeleteOutreach,
+} from "./outreach";
 
 const router = Router();
 
@@ -64,5 +70,11 @@ router.post("/documents", handleAddDocument);
 // Audit Logs
 router.get("/audit-logs", handleGetAuditLogs);
 router.post("/audit-logs", handleAddAuditLog);
+
+// Oncologist Outreach Tracker
+router.get("/outreach", handleGetOutreach);
+router.post("/outreach", handleAddOutreach);
+router.patch("/outreach/:id", handleUpdateOutreach);
+router.delete("/outreach/:id", handleDeleteOutreach);
 
 export default router;
