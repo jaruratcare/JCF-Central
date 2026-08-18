@@ -4,14 +4,28 @@ import { AppLayout } from '@/shared/layouts/AppLayout';
 import CarcinomeDashboardContent from './CarcinomeDashboardContent';
 import { CarcinomeProvider, useCarcinome } from '../context/CarcinomeContext';
 import { CarcinomeNav } from '../components/CarcinomeNav';
+import { CarcinomeInternNav } from '../components/CarcinomeInternNav';
 
 function CarcinomaDashboardWithNav() {
-  const { activeTab, setActiveTab } = useCarcinome();
+  const { activeTab, setActiveTab, isIntern } = useCarcinome();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
     const path = location.pathname;
+
+    if (isIntern) {
+      if (path.includes('/outreach')) {
+        setActiveTab('outreach');
+      } else if (path.includes('/patients/')) {
+        // patient detail — keep tab as-is
+      } else {
+        setActiveTab('my-patients');
+      }
+      return;
+    }
+
+    // Pod lead tab sync
     if (path.includes('/patients')) {
       setActiveTab('patients');
     } else if (path.includes('/sessions')) {
@@ -33,10 +47,19 @@ function CarcinomaDashboardWithNav() {
     } else {
       setActiveTab('dashboard');
     }
-  }, [location.pathname, setActiveTab]);
+  }, [location.pathname, setActiveTab, isIntern]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
+
+    if (isIntern) {
+      if (tabId === 'outreach') {
+        navigate('/departments/carcinome/outreach');
+      } else {
+        navigate('/departments/carcinome/patients');
+      }
+      return;
+    }
 
     const pathMap: Record<string, string> = {
       dashboard: '/departments/carcinome/dashboard',
@@ -57,7 +80,11 @@ function CarcinomaDashboardWithNav() {
   return (
     <AppLayout
       departmentName="Carcinome"
-      secondaryNav={<CarcinomeNav activeTab={activeTab} onTabChange={handleTabChange} />}
+      secondaryNav={
+        isIntern
+          ? <CarcinomeInternNav activeTab={activeTab} onTabChange={handleTabChange} />
+          : <CarcinomeNav activeTab={activeTab} onTabChange={handleTabChange} />
+      }
     >
       <CarcinomeDashboardContent />
     </AppLayout>

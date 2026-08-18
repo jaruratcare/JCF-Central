@@ -580,6 +580,8 @@ export interface MasterDataItem {
   value: string;
   label: string;
   description?: string;
+  /** Gmail address linked to this intern — used for login-based role detection (Assignee category only) */
+  gmail?: string;
   active: boolean;
 }
 

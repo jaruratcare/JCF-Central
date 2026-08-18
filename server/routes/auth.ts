@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import { supabase, supabaseAdmin } from '../supabaseClient';
+import { findInternByEmail } from './carcinome/interns';
 
 export const handleRequestPasswordReset: RequestHandler = async (req, res) => {
   try {
@@ -155,7 +156,7 @@ export const handleLogin: RequestHandler = async (req, res) => {
       const deptSlug = (profileData.department as any)?.slug || 'tech';
       const roleSlug = (profileData.role as any)?.slug || 'member';
 
-      const user = {
+      const user: Record<string, string> = {
         id: profileData.id,
         email: profileData.email,
         firstName: firstName,
@@ -163,6 +164,20 @@ export const handleLogin: RequestHandler = async (req, res) => {
         department: deptSlug.replace(/_/g, '-'),
         role: roleSlug.replace(/_/g, '-'),
       };
+
+      // --- Carcinome intern detection ---
+      // If a Carcinome Assignee entry has a matching gmail, override role to carcinome_intern and department to carcinome.
+      try {
+        const intern = await findInternByEmail(profileData.email);
+        if (intern) {
+          user.role = 'carcinome_intern';
+          user.department = 'carcinome';
+          user.internName = intern.name;
+        }
+      } catch (err) {
+        console.warn('[Login Intern Check Error]:', err);
+      }
+      // ----------------------------------
 
       console.log('Login successful for:', user.email);
       res.json({

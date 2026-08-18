@@ -37,7 +37,7 @@ export const handleGetTasks: RequestHandler = async (_req, res) => {
       description: extra.desc || t.description || "",
       patientId: extra.patientId || "",
       patientName: extra.patientName || "",
-      status: t.status === "completed" ? "Completed" : t.status === "in_progress" ? "In Progress" : "Pending",
+      status: t.status === "done" || t.status === "completed" ? "Completed" : t.status === "in_progress" ? "In Progress" : "Pending",
       priority: t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : "Medium",
       assignee: extra.assignee || "Komal",
       dueDate: t.due_date || "",
@@ -68,7 +68,7 @@ export const handleAddTask: RequestHandler = async (req, res) => {
     category: task.category || "General",
   };
 
-  const dbStatus = task.status === "Completed" ? "completed" : task.status === "In Progress" ? "in_progress" : "todo";
+  const dbStatus = task.status === "Completed" ? "done" : task.status === "In Progress" ? "in_progress" : "todo";
   const dbPriority = (task.priority || "medium").toLowerCase();
 
   const dbRow = {
@@ -156,7 +156,7 @@ export const handleUpdateTask: RequestHandler = async (req, res) => {
   };
 
   if (updates.status !== undefined) {
-    dbUpdates.status = updates.status === "Completed" ? "completed" : updates.status === "In Progress" ? "in_progress" : "todo";
+    dbUpdates.status = updates.status === "Completed" ? "done" : updates.status === "In Progress" ? "in_progress" : "todo";
   }
   if (updates.title !== undefined) dbUpdates.title = updates.title;
   if (updates.priority !== undefined) dbUpdates.priority = String(updates.priority).toLowerCase();
@@ -181,7 +181,7 @@ export const handleUpdateTask: RequestHandler = async (req, res) => {
       description: extra.desc || "",
       patientId: extra.patientId || "",
       patientName: extra.patientName || "",
-      status: updated.status === "completed" ? "Completed" : updated.status === "in_progress" ? "In Progress" : "Pending",
+      status: updated.status === "done" || updated.status === "completed" ? "Completed" : updated.status === "in_progress" ? "In Progress" : "Pending",
       priority: updated.priority ? updated.priority.charAt(0).toUpperCase() + updated.priority.slice(1) : "Medium",
       assignee: extra.assignee || "Komal",
       dueDate: updated.due_date || "",

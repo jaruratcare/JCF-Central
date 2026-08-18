@@ -55,7 +55,7 @@ export const AddEditOutreachModal: React.FC<AddEditOutreachModalProps> = ({
   entryToEdit,
   onSave,
 }) => {
-  const { masterData } = useCarcinome();
+  const { masterData, internName } = useCarcinome();
 
   const [formData, setFormData] = useState({
     doctorName: "",
@@ -127,13 +127,13 @@ export const AddEditOutreachModal: React.FC<AddEditOutreachModalProps> = ({
         email: "",
         outreachStage: stageOptions[0] || "Initial",
         status: statusOptions[0] || "Awaiting Response",
-        outreachDoneBy: "",
+        outreachDoneBy: internName || "",
         lastOutreachDate: new Date().toISOString().split("T")[0],
         notes: "",
         sourceSheet: "General",
       });
     }
-  }, [entryToEdit, open, stageOptions, statusOptions]);
+  }, [entryToEdit, open, stageOptions, statusOptions, internName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

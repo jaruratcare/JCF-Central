@@ -20,11 +20,13 @@ import {
 import {
   handleGetMasterData,
   handleAddMasterData,
-  handleToggleMasterData,
+  handleUpdateMasterData,
+  handleDeleteMasterData,
 } from "./masterdata";
 import { handleGetNotes, handleAddNote } from "./notes";
 import { handleGetDocuments, handleAddDocument } from "./documents";
 import { handleGetAuditLogs, handleAddAuditLog } from "./audit";
+import { handleGetInternByEmail, handleSyncInternAccounts } from "./interns";
 import {
   handleGetOutreach,
   handleAddOutreach,
@@ -59,7 +61,8 @@ router.delete("/tasks/:id", handleDeleteTask);
 // Master Data
 router.get("/master-data", handleGetMasterData);
 router.post("/master-data", handleAddMasterData);
-router.patch("/master-data/:id", handleToggleMasterData);
+router.patch("/master-data/:id", handleUpdateMasterData);
+router.delete("/master-data/:id", handleDeleteMasterData);
 
 // Notes & Documents
 router.get("/notes", handleGetNotes);
@@ -76,5 +79,9 @@ router.get("/outreach", handleGetOutreach);
 router.post("/outreach", handleAddOutreach);
 router.patch("/outreach/:id", handleUpdateOutreach);
 router.delete("/outreach/:id", handleDeleteOutreach);
+
+// Intern lookup & provisioning
+router.get("/interns/by-email", handleGetInternByEmail);
+router.post("/interns/sync-accounts", handleSyncInternAccounts);
 
 export default router;

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import {
   Database,
   Plus,
+  Pencil,
+  Trash2,
   Tag,
   Stethoscope,
   Truck,
@@ -16,9 +18,10 @@ import {
   ArrowDown,
   RotateCcw,
   SlidersHorizontal,
-  Trash2,
   Check,
   Building2,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -400,33 +403,119 @@ export const TableColumnsManager: React.FC = () => {
 };
 
 export const MasterDataView: React.FC = () => {
-  const { masterData, addMasterItem, toggleMasterItem } = useCarcinome();
+  const { masterData, addMasterItem, updateMasterItem, toggleMasterItem, deleteMasterItem } = useCarcinome();
 
   const [activeCategory, setActiveCategory] = useState<ExtendedCategory>("TableColumns");
+
+  // ── Add / Edit modal ──────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null); // null = add mode
   const [newValue, setNewValue] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newGmail, setNewGmail] = useState("");
+
+  // ── Delete confirmation ───────────────────────────────────────────────────
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // ── Intern account sync ───────────────────────────────────────────────────
+  const [syncStatus, setSyncStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [syncSummary, setSyncSummary] = useState<string>("");
+
+  const syncAllInternAccounts = async () => {
+    setSyncStatus("loading");
+    setSyncSummary("");
+    try {
+      const res = await fetch("/api/carcinome/interns/sync-accounts", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        const created = data.results.filter((r: any) => r.status === "created").length;
+        const reset = data.results.filter((r: any) => r.status === "reset").length;
+        const failed = data.results.filter((r: any) => r.status === "failed").length;
+        setSyncSummary(
+          `${data.synced} intern${data.synced !== 1 ? "s" : ""} processed — ` +
+          `${created} created, ${reset} password reset${failed > 0 ? `, ${failed} failed` : ""}.`
+        );
+        setSyncStatus("done");
+      } else {
+        setSyncSummary("Sync failed. Check server logs.");
+        setSyncStatus("error");
+      }
+    } catch {
+      setSyncSummary("Network error. Check server is running.");
+      setSyncStatus("error");
+    }
+    setTimeout(() => { setSyncStatus("idle"); setSyncSummary(""); }, 6000);
+  };
 
   const currentItems = masterData.filter((m) => m.category === activeCategory);
 
-  const handleAddItemSubmit = (e: React.FormEvent) => {
+  // Open modal in Add mode
+  const openAddModal = () => {
+    setEditingId(null);
+    setNewLabel("");
+    setNewValue("");
+    setNewDesc("");
+    setNewGmail("");
+    setModalOpen(true);
+  };
+
+  // Open modal in Edit mode, pre-filling fields from existing item
+  const openEditModal = (item: MasterDataItem) => {
+    setEditingId(item.id);
+    setNewLabel(item.label);
+    setNewValue(item.value);
+    setNewDesc(item.description || "");
+    setNewGmail(item.gmail || "");
+    setModalOpen(true);
+  };
+
+  const handleModalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLabel.trim()) return;
 
-    if (activeCategory !== "TableColumns") {
+    if (activeCategory === "TableColumns") {
+      setModalOpen(false);
+      return;
+    }
+
+    const gmailField =
+      activeCategory === "Assignee" && newGmail.trim()
+        ? { gmail: newGmail.trim().toLowerCase() }
+        : activeCategory === "Assignee"
+        ? { gmail: undefined }
+        : {};
+
+    if (editingId) {
+      // Edit mode
+      updateMasterItem(editingId, {
+        label: newLabel.trim(),
+        value: newValue.trim() || newLabel.trim(),
+        description: newDesc.trim() || undefined,
+        ...gmailField,
+      });
+    } else {
+      // Add mode
       addMasterItem({
         category: activeCategory as MasterDataItem["category"],
         value: newValue.trim() || newLabel.trim(),
         label: newLabel.trim(),
         description: newDesc.trim() || undefined,
+        ...gmailField,
       });
     }
 
     setNewValue("");
     setNewLabel("");
     setNewDesc("");
+    setNewGmail("");
+    setEditingId(null);
     setModalOpen(false);
+  };
+
+  const handleConfirmDelete = (id: string) => {
+    deleteMasterItem(id);
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -435,15 +524,15 @@ export const MasterDataView: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Master Data & System Configuration
+            Master Data &amp; System Configuration
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage table column layouts, dropdown options, oncologists, suppliers, interns & statuses.
+            Manage table column layouts, dropdown options, oncologists, suppliers, interns &amp; statuses.
           </p>
         </div>
         {activeCategory !== "TableColumns" && (
           <Button
-            onClick={() => setModalOpen(true)}
+            onClick={openAddModal}
             className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5"
           >
             <Plus className="h-4 w-4" /> Add Master Option
@@ -471,7 +560,7 @@ export const MasterDataView: React.FC = () => {
               return (
                 <button
                   key={cat.key}
-                  onClick={() => setActiveCategory(cat.key)}
+                  onClick={() => { setActiveCategory(cat.key); setConfirmDeleteId(null); }}
                   className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive
                       ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold"
@@ -497,15 +586,34 @@ export const MasterDataView: React.FC = () => {
             <TableColumnsManager />
           ) : (
             <Card className="border-slate-200 dark:border-slate-800 overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <CardTitle className="text-base font-semibold">
                     {CATEGORIES.find((c) => c.key === activeCategory)?.label}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Active choices available in patient forms & dropdowns
+                    Active choices available in patient forms &amp; dropdowns
                   </CardDescription>
                 </div>
+                {activeCategory === "Assignee" && (
+                  <div className="flex flex-col sm:items-end gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={syncAllInternAccounts}
+                      disabled={syncStatus === "loading"}
+                      className="text-xs gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "loading" ? "animate-spin" : ""}`} />
+                      Sync All Intern Logins (Pass: 12345678)
+                    </Button>
+                    {syncSummary && (
+                      <p className={`text-[11px] font-medium ${syncStatus === "error" ? "text-red-600" : "text-emerald-600 dark:text-emerald-400"}`}>
+                        {syncSummary}
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -515,49 +623,133 @@ export const MasterDataView: React.FC = () => {
                         <th className="p-3.5">Option Label</th>
                         <th className="p-3.5">Stored Value</th>
                         <th className="p-3.5">Description</th>
+                        {activeCategory === "Assignee" && (
+                          <th className="p-3.5">Gmail (for login)</th>
+                        )}
                         <th className="p-3.5">Status</th>
-                        <th className="p-3.5 text-right">Toggle Active</th>
+                        <th className="p-3.5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {currentItems.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-slate-500">
+                          <td colSpan={activeCategory === "Assignee" ? 6 : 5} className="py-8 text-center text-slate-500">
                             No master data options configured under this category.
                           </td>
                         </tr>
                       ) : (
                         currentItems.map((item) => (
-                          <tr key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                            <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">
-                              {item.label}
-                            </td>
-                            <td className="p-3.5 font-mono text-slate-500">{item.value}</td>
-                            <td className="p-3.5 text-slate-600 dark:text-slate-400">
-                              {item.description || "—"}
-                            </td>
-                            <td className="p-3.5">
-                              <Badge
-                                className={
-                                  item.active
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                                }
-                              >
-                                {item.active ? "Active" : "Inactive"}
-                              </Badge>
-                            </td>
-                            <td className="p-3.5 text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleMasterItem(item.id)}
-                                className="h-7 text-xs"
-                              >
-                                {item.active ? "Deactivate" : "Activate"}
-                              </Button>
-                            </td>
-                          </tr>
+                          <>
+                            {/* Normal row */}
+                            <tr
+                              key={item.id}
+                              className={`transition-colors ${
+                                confirmDeleteId === item.id
+                                  ? "bg-red-50/60 dark:bg-red-950/20"
+                                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/30"
+                              }`}
+                            >
+                              <td className="p-3.5 font-semibold text-slate-900 dark:text-slate-100">
+                                {item.label}
+                              </td>
+                              <td className="p-3.5 font-mono text-slate-500">{item.value}</td>
+                              <td className="p-3.5 text-slate-600 dark:text-slate-400">
+                                {item.description || "—"}
+                              </td>
+                              {activeCategory === "Assignee" && (
+                                <td className="p-3.5">
+                                  {item.gmail ? (
+                                    <span className="font-mono text-[11px] text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">
+                                      {item.gmail}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400 italic text-[11px]">not set</span>
+                                  )}
+                                </td>
+                              )}
+                              <td className="p-3.5">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toggleMasterItem(item.id)}
+                                  className={`h-7 text-xs ${
+                                    item.active
+                                      ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
+                                      : "bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700"
+                                  }`}
+                                >
+                                  {item.active ? "Active" : "Inactive"}
+                                </Button>
+                              </td>
+                              <td className="p-3.5">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* Edit */}
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Edit"
+                                    onClick={() => { setConfirmDeleteId(null); openEditModal(item); }}
+                                    className="h-7 w-7 text-slate-500 hover:text-blue-600 hover:border-blue-300"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  {/* Delete */}
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Delete"
+                                    onClick={() =>
+                                      setConfirmDeleteId(
+                                        confirmDeleteId === item.id ? null : item.id
+                                      )
+                                    }
+                                    className={`h-7 w-7 ${
+                                      confirmDeleteId === item.id
+                                        ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                                        : "text-slate-500 hover:text-red-600 hover:border-red-300"
+                                    }`}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Inline delete confirmation row */}
+                            {confirmDeleteId === item.id && (
+                              <tr key={`${item.id}-confirm`} className="bg-red-50 dark:bg-red-950/30">
+                                <td
+                                  colSpan={activeCategory === "Assignee" ? 6 : 5}
+                                  className="px-4 py-2.5"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                                    <p className="text-xs text-red-700 dark:text-red-300 font-medium flex-1">
+                                      Delete <span className="font-bold">"{item.label}"</span>? This cannot be undone.
+                                    </p>
+                                    <div className="flex items-center gap-1.5">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setConfirmDeleteId(null)}
+                                        className="h-7 text-xs"
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleConfirmDelete(item.id)}
+                                        className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white border-red-600"
+                                      >
+                                        <Trash2 className="h-3 w-3 mr-1" />
+                                        Delete
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>
                         ))
                       )}
                     </tbody>
@@ -569,32 +761,35 @@ export const MasterDataView: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Master Option Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      {/* Add / Edit Master Option Modal */}
+      <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if (!open) setEditingId(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Master Option</DialogTitle>
+            <DialogTitle>{editingId ? "Edit Master Option" : "Add Master Option"}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleAddItemSubmit} className="space-y-4 text-xs py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Category</Label>
-              <Select
-                value={activeCategory as string}
-                onValueChange={(val) => setActiveCategory(val as ExtendedCategory)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.filter((c) => c.key !== "TableColumns").map((c) => (
-                    <SelectItem key={c.key} value={c.key}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <form onSubmit={handleModalSubmit} className="space-y-4 text-xs py-2">
+            {/* Category — only shown in add mode */}
+            {!editingId && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Category</Label>
+                <Select
+                  value={activeCategory as string}
+                  onValueChange={(val) => setActiveCategory(val as ExtendedCategory)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.filter((c) => c.key !== "TableColumns").map((c) => (
+                      <SelectItem key={c.key} value={c.key}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Display Label *</Label>
@@ -624,12 +819,31 @@ export const MasterDataView: React.FC = () => {
               />
             </div>
 
+            {/* Gmail field — only for Assignee */}
+            {activeCategory === "Assignee" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Gmail Address
+                  <span className="ml-1.5 font-normal text-slate-500">(used for intern login detection)</span>
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="e.g. intern.name@gmail.com"
+                  value={newGmail}
+                  onChange={(e) => setNewGmail(e.target.value)}
+                />
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  When this intern logs in with this exact gmail, they'll automatically receive intern-level access to their assigned patients.
+                </p>
+              </div>
+            )}
+
             <DialogFooter className="pt-3">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setEditingId(null); }}>
                 Cancel
               </Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                Save Master Option
+                {editingId ? "Save Changes" : "Save Master Option"}
               </Button>
             </DialogFooter>
           </form>
@@ -638,3 +852,4 @@ export const MasterDataView: React.FC = () => {
     </div>
   );
 };
+

@@ -61,6 +61,7 @@ export const handleGetPatients: RequestHandler = async (_req, res) => {
     .from("outreach_contacts")
     .select("*")
     .eq("department_id", CARCINOME_DEPT_ID)
+    .eq("status", "active")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -68,7 +69,9 @@ export const handleGetPatients: RequestHandler = async (_req, res) => {
     return;
   }
 
-  const patients = (data || []).map(parsePatientRow);
+  const patients = (data || [])
+    .filter((r: any) => !r.organization?.startsWith("md-") && !r.organization?.startsWith("OOC-"))
+    .map(parsePatientRow);
   res.json({ patients });
 };
 

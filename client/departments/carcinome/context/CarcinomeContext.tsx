@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from "@/auth/authContext";
 import {
   type Patient,
   type InfusionSession,
@@ -33,6 +34,8 @@ interface CarcinomeContextType {
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
+  isIntern: boolean;
+  internName: string | null;
 
   // Table Columns Customization
   tableColumns: TableColumnsState;
@@ -60,7 +63,9 @@ interface CarcinomeContextType {
 
   // Master Data CRUD
   addMasterItem: (item: Omit<MasterDataItem, "id" | "active">) => Promise<void>;
+  updateMasterItem: (id: string, updates: Partial<MasterDataItem>) => Promise<void>;
   toggleMasterItem: (id: string) => Promise<void>;
+  deleteMasterItem: (id: string) => Promise<void>;
 
   // Notes & Documents
   addNote: (patientId: string, content: string) => Promise<void>;
@@ -75,13 +80,32 @@ interface CarcinomeContextType {
 const CarcinomeContext = createContext<CarcinomeContextType | undefined>(undefined);
 
 export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { user } = useAuth();
+  const isIntern = user?.role === 'carcinome_intern';
+  const internName = user?.internName ?? null;
+
+  const [allPatients, setAllPatients] = useState<Patient[]>([]);
+  const patients = isIntern
+    ? allPatients.filter((p) => p.allottedIntern === internName)
+    : allPatients;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [masterData, setMasterData] = useState<MasterDataItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
   const [notes, setNotes] = useState<PatientNote[]>([]);
-  const [outreachEntries, setOutreachEntries] = useState<OncologistOutreach[]>([]);
+  const [allOutreachEntries, setAllOutreachEntries] = useState<OncologistOutreach[]>([]);
+
+  const outreachEntries = useMemo(() => {
+    if (isIntern && internName) {
+      const cleanIntern = internName.toLowerCase().trim();
+      return allOutreachEntries.filter((e) => {
+        if (!e.outreachDoneBy) return false;
+        const cleanDoneBy = e.outreachDoneBy.toLowerCase().trim();
+        return cleanDoneBy === cleanIntern || cleanDoneBy.includes(cleanIntern) || cleanIntern.includes(cleanDoneBy);
+      });
+    }
+    return allOutreachEntries;
+  }, [allOutreachEntries, isIntern, internName]);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -137,9 +161,9 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await fetch("/api/carcinome/migrate", { method: "POST" });
         const retryRes = await fetch("/api/carcinome/patients");
         const retryData = await retryRes.json();
-        setPatients(retryData.patients || []);
+        setAllPatients(retryData.patients || []);
       } else {
-        setPatients(pData.patients || []);
+        setAllPatients(pData.patients || []);
       }
 
       const [tRes, mdRes, nRes, dRes, aRes, oRes] = await Promise.all([
@@ -156,7 +180,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (nRes.ok) setNotes((await nRes.json()).notes || []);
       if (dRes.ok) setDocuments((await dRes.json()).documents || []);
       if (aRes.ok) setAuditLogs((await aRes.json()).auditLogs || []);
-      if (oRes.ok) setOutreachEntries((await oRes.json()).outreach || []);
+      if (oRes.ok) setAllOutreachEntries((await oRes.json()).outreach || []);
 
     } catch (err: any) {
       console.error("Failed to load Carcinome database data:", err);
@@ -219,7 +243,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!res.ok) throw new Error("Failed to add patient");
       const result = await res.json();
       if (result.patient) {
-        setPatients((prev) => [result.patient, ...prev]);
+        setAllPatients((prev) => [result.patient, ...prev]);
         logAction("CREATE", "Patient", result.patient.id, result.patient.name, `Created patient profile for ${result.patient.name}`);
       }
     } catch (err) {
@@ -228,7 +252,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updatePatient = async (id: string, updates: Partial<Patient>) => {
-    setPatients((prev) =>
+    setAllPatients((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
     );
 
@@ -241,7 +265,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (res.ok) {
         const result = await res.json();
         if (result.patient) {
-          setPatients((prev) =>
+          setAllPatients((prev) =>
             prev.map((p) => (p.id === id ? result.patient : p))
           );
           logAction("UPDATE", "Patient", id, result.patient.name, `Updated patient profile for ${result.patient.name}`);
@@ -254,8 +278,8 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deletePatient = async (id: string) => {
-    const target = patients.find((p) => p.id === id);
-    setPatients((prev) => prev.filter((p) => p.id !== id));
+    const target = allPatients.find((p) => p.id === id);
+    setAllPatients((prev) => prev.filter((p) => p.id !== id));
     if (selectedPatientId === id) setSelectedPatientId(null);
 
     try {
@@ -276,7 +300,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Session CRUD
   const addSession = async (patientId: string, session: InfusionSession) => {
     // Optimistic UI update
-    setPatients((prev) =>
+    setAllPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
           const newSessions = [...p.sessions, session];
@@ -300,7 +324,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (res.ok) {
         const data = await res.json();
         if (data.patient) {
-          setPatients((prev) =>
+          setAllPatients((prev) =>
             prev.map((p) => (p.id === patientId ? data.patient : p))
           );
           logAction("CREATE", "Session", patientId, data.patient.name, `Added infusion session on ${session.date} for ${data.patient.name}`);
@@ -314,7 +338,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateSession = async (patientId: string, sessionIndex: number, session: InfusionSession) => {
     // Optimistic update
-    setPatients((prev) =>
+    setAllPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
           const newSessions = [...p.sessions];
@@ -334,7 +358,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (res.ok) {
         const data = await res.json();
         if (data.patient) {
-          setPatients((prev) =>
+          setAllPatients((prev) =>
             prev.map((p) => (p.id === patientId ? data.patient : p))
           );
         }
@@ -347,7 +371,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const deleteSession = async (patientId: string, sessionIndex: number) => {
     // Optimistic update
-    setPatients((prev) =>
+    setAllPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
           const newSessions = p.sessions.filter((_, idx) => idx !== sessionIndex);
@@ -366,7 +390,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (res.ok) {
         const data = await res.json();
         if (data.patient) {
-          setPatients((prev) =>
+          setAllPatients((prev) =>
             prev.map((p) => (p.id === patientId ? data.patient : p))
           );
         }
@@ -381,7 +405,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const updatePaymentStatus = async (patientId: string, paymentStatus: PaymentStatus, sessionIndex?: number) => {
     await updatePatient(patientId, { paymentStatus });
     if (sessionIndex !== undefined) {
-      const targetPatient = patients.find((p) => p.id === patientId);
+      const targetPatient = allPatients.find((p) => p.id === patientId);
       const existingSession = targetPatient?.sessions[sessionIndex];
       if (existingSession) {
         await updateSession(patientId, sessionIndex, { ...existingSession, paymentStatus });
@@ -467,21 +491,47 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const toggleMasterItem = async (id: string) => {
-    const item = masterData.find((m) => m.id === id);
-    if (!item) return;
-    const newActive = !item.active;
-
+  const updateMasterItem = async (id: string, updates: Partial<MasterDataItem>) => {
     setMasterData((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, active: newActive } : m))
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
     );
 
     try {
-      await fetch(`/api/carcinome/master-data/${id}`, {
+      const res = await fetch(`/api/carcinome/master-data/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: newActive }),
+        body: JSON.stringify(updates),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.item) {
+          setMasterData((prev) =>
+            prev.map((m) => (m.id === id ? data.item : m))
+          );
+          logAction("UPDATE", "MasterData", id, data.item.label, `Updated master option: ${data.item.label}`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      refreshData();
+    }
+  };
+
+  const toggleMasterItem = async (id: string) => {
+    const item = masterData.find((m) => m.id === id);
+    if (!item) return;
+    await updateMasterItem(id, { active: !item.active });
+  };
+
+  const deleteMasterItem = async (id: string) => {
+    const target = masterData.find((m) => m.id === id);
+    setMasterData((prev) => prev.filter((m) => m.id !== id));
+
+    try {
+      await fetch(`/api/carcinome/master-data/${id}`, { method: "DELETE" });
+      if (target) {
+        logAction("DELETE", "MasterData", id, target.label, `Deleted master option ${target.label}`);
+      }
     } catch (err) {
       console.error(err);
       refreshData();
@@ -542,7 +592,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (res.ok) {
         const result = await res.json();
         if (result.item) {
-          setOutreachEntries((prev) => [result.item, ...prev]);
+          setAllOutreachEntries((prev) => [result.item, ...prev]);
         }
       }
     } catch (e) {
@@ -558,7 +608,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         body: JSON.stringify(updates),
       });
       if (res.ok) {
-        setOutreachEntries((prev) =>
+        setAllOutreachEntries((prev) =>
           prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
         );
       }
@@ -573,7 +623,7 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         method: "DELETE",
       });
       if (res.ok) {
-        setOutreachEntries((prev) => prev.filter((item) => item.id !== id));
+        setAllOutreachEntries((prev) => prev.filter((item) => item.id !== id));
       }
     } catch (e) {
       console.error("Failed to delete outreach entry:", e);
@@ -597,6 +647,8 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         loading,
         error,
         refreshData,
+        isIntern,
+        internName,
 
         tableColumns,
         updateTableColumns,
@@ -617,7 +669,9 @@ export const CarcinomeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         deleteTask,
 
         addMasterItem,
+        updateMasterItem,
         toggleMasterItem,
+        deleteMasterItem,
 
         addNote,
         addDocument,

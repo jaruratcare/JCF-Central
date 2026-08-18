@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, useNavigate, useParams, Navigate } from "react-router-dom";
-import { CarcinomeProvider } from "../context/CarcinomeContext";
+import { useCarcinome } from "../context/CarcinomeContext";
+import { InternDashboardView } from "../views/InternDashboardView";
 import { OverviewDashboardView } from "../views/OverviewDashboardView";
 import { PatientsView } from "../views/PatientsView";
 import { SessionsView } from "../views/SessionsView";
@@ -25,9 +26,32 @@ function PatientDetailsRouteWrapper() {
 }
 
 function CarcinomeDashboardInner() {
+  const { isIntern } = useCarcinome();
+
+  if (isIntern) {
+    // Intern-only route tree: my patients list + patient details
+    return (
+      <div className="space-y-6">
+        <Routes>
+          {/* Default → intern patient list */}
+          <Route path="/" element={<Navigate to="/departments/carcinome/patients" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/departments/carcinome/patients" replace />} />
+          {/* Patient list (uses InternDashboardView — already filtered by context) */}
+          <Route path="/patients" element={<InternDashboardView />} />
+          {/* Patient detail — full existing view, all capabilities */}
+          <Route path="/patients/:patientId" element={<PatientDetailsRouteWrapper />} />
+          {/* Oncologist outreach tracker tab for intern */}
+          <Route path="/outreach" element={<OutreachTrackerView />} />
+          {/* Catch-all → redirect back to intern patient list */}
+          <Route path="*" element={<Navigate to="/departments/carcinome/patients" replace />} />
+        </Routes>
+      </div>
+    );
+  }
+
+  // Full pod-lead route tree (unchanged)
   return (
     <div className="space-y-6">
-      {/* Main View Area */}
       <div>
         <Routes>
           <Route path="/" element={<Navigate to="/departments/carcinome/dashboard" replace />} />

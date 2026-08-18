@@ -1,6 +1,14 @@
 import { RequestHandler } from "express";
 import { supabaseAdmin } from "../../supabaseClient";
-import { patients as initialPatients, initialTasks, initialAuditLogs } from "../../../client/departments/carcinome/data/dummy-data";
+import {
+  patients as initialPatients,
+  initialTasks,
+  initialAuditLogs,
+  initialMasterData,
+  initialNotes,
+  initialDocuments,
+} from "../../../client/departments/carcinome/data/dummy-data";
+import { initialOncologistOutreach } from "../../../client/departments/carcinome/data/outreach-data";
 
 const CARCINOME_DEPT_ID = "44e9a0b7-e3e1-43cf-adee-13fef2fe5c61";
 
@@ -55,7 +63,7 @@ export const handleMigrate: RequestHandler = async (_req, res) => {
       department_id: CARCINOME_DEPT_ID,
       title: task.title,
       description: JSON.stringify(extra),
-      status: task.status === "Completed" ? "completed" : task.status === "In Progress" ? "in_progress" : "todo",
+      status: task.status === "Completed" ? "done" : task.status === "In Progress" ? "in_progress" : "todo",
       priority: (task.priority || "medium").toLowerCase(),
       due_date: task.dueDate || null,
     };
@@ -125,5 +133,140 @@ export const handleMigrate: RequestHandler = async (_req, res) => {
   }
   results.push(`✓ Seeded ${initialAuditLogs.length} audit logs into Supabase (activity_logs)`);
 
+  // 4. Seed Master Data into outreach_contacts table
+  for (const item of initialMasterData) {
+    const dbRow = {
+      department_id: CARCINOME_DEPT_ID,
+      contact_name: item.label,
+      organization: item.id,
+      phone: item.category,
+      status: "active",
+      notes: JSON.stringify(item),
+    };
+
+    const { data: existing } = await supabaseAdmin
+      .from("outreach_contacts")
+      .select("id")
+      .eq("department_id", CARCINOME_DEPT_ID)
+      .eq("status", "active")
+      .eq("organization", item.id);
+
+    if (existing && existing.length > 0) {
+      await supabaseAdmin
+        .from("outreach_contacts")
+        .update(dbRow)
+        .eq("id", existing[0].id);
+    } else {
+      await supabaseAdmin.from("outreach_contacts").insert(dbRow);
+    }
+  }
+  results.push(`✓ Seeded ${initialMasterData.length} master data options into Supabase (outreach_contacts)`);
+
+  // 5. Seed Patient Notes into activity_logs table
+  for (const note of initialNotes) {
+    const dbRow = {
+      department_id: CARCINOME_DEPT_ID,
+      title: note.patientId,
+      action: "ADD_NOTE",
+      table_name: "patient_note",
+      record_id: null,
+      metadata: JSON.stringify(note),
+    };
+
+    const { data: existing } = await supabaseAdmin
+      .from("activity_logs")
+      .select("*")
+      .eq("department_id", CARCINOME_DEPT_ID)
+      .eq("table_name", "patient_note");
+
+    const target = (existing || []).find((a: any) => {
+      try {
+        const parsed = typeof a.metadata === "string" ? JSON.parse(a.metadata) : a.metadata;
+        return parsed?.id === note.id;
+      } catch {
+        return false;
+      }
+    });
+
+    if (target) {
+      await supabaseAdmin.from("activity_logs").update(dbRow).eq("id", target.id);
+    } else {
+      await supabaseAdmin.from("activity_logs").insert(dbRow);
+    }
+  }
+  results.push(`✓ Seeded ${initialNotes.length} patient notes into Supabase (activity_logs)`);
+
+  // 6. Seed Patient Documents into activity_logs table
+  for (const doc of initialDocuments) {
+    const dbRow = {
+      department_id: CARCINOME_DEPT_ID,
+      title: doc.name,
+      action: "UPLOAD_DOCUMENT",
+      table_name: "patient_document",
+      record_id: null,
+      metadata: JSON.stringify(doc),
+    };
+
+    const { data: existing } = await supabaseAdmin
+      .from("activity_logs")
+      .select("*")
+      .eq("department_id", CARCINOME_DEPT_ID)
+      .eq("table_name", "patient_document");
+
+    const target = (existing || []).find((a: any) => {
+      try {
+        const parsed = typeof a.metadata === "string" ? JSON.parse(a.metadata) : a.metadata;
+        return parsed?.id === doc.id;
+      } catch {
+        return false;
+      }
+    });
+
+    if (target) {
+      await supabaseAdmin.from("activity_logs").update(dbRow).eq("id", target.id);
+    } else {
+      await supabaseAdmin.from("activity_logs").insert(dbRow);
+    }
+  }
+  results.push(`✓ Seeded ${initialDocuments.length} patient documents into Supabase (activity_logs)`);
+
+  // 7. Seed Oncologist Outreach into outreach_contacts table
+  for (const item of initialOncologistOutreach) {
+    const oocId = item.id.startsWith("OOC-") ? item.id : `OOC-${item.id}`;
+    const dbRow = {
+      department_id: CARCINOME_DEPT_ID,
+      contact_name: item.doctorName,
+      organization: oocId,
+      phone: item.contactNumber || null,
+      email: item.email || null,
+      status: "active",
+      notes: JSON.stringify({ ...item, id: oocId }),
+    };
+
+    const { data: existing } = await supabaseAdmin
+      .from("outreach_contacts")
+      .select("*")
+      .eq("department_id", CARCINOME_DEPT_ID)
+      .eq("status", "active");
+
+    const target = (existing || []).find((r: any) => {
+      if (r.id === oocId || r.organization === oocId) return true;
+      try {
+        const parsed = typeof r.notes === "string" ? JSON.parse(r.notes) : r.notes;
+        return parsed?.id === oocId;
+      } catch {
+        return false;
+      }
+    });
+
+    if (target) {
+      await supabaseAdmin.from("outreach_contacts").update(dbRow).eq("id", target.id);
+    } else {
+      await supabaseAdmin.from("outreach_contacts").insert(dbRow);
+    }
+  }
+  results.push(`✓ Seeded ${initialOncologistOutreach.length} oncologist outreach items into Supabase (outreach_contacts)`);
+
   res.json({ results });
 };
+
