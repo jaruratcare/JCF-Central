@@ -1,14 +1,58 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, Archive, BarChart3, Bell, CalendarDays, CheckCircle2, ChevronDown,
-  CircleHelp, ClipboardList, Clock3, FileText, Filter, GripVertical, LayoutDashboard,
-  ListTodo, Menu, MoreHorizontal, Paperclip, Plus, Search, Send, Settings, Share2,
-  Target, Users, X, MessageCircle, TrendingUp, UserRound, Database, Video, Calendar,
-} from 'lucide-react';
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardList,
+  Clock3,
+  Filter,
+  GripVertical,
+  LayoutDashboard,
+  ListTodo,
+  Menu,
+  MoreHorizontal,
+  Paperclip,
+  Plus,
+  Search,
+  Send,
+  Settings,
+  Share2,
+  TrendingUp,
+  Users,
+  X,
+  MessageCircle,
+  UserRound,
+  Database,
+  Video,
+  Calendar,
+} from "lucide-react";
 
-type View = 'Dashboard' | 'My Tasks' | 'Kanban Board' | 'Calendar' | 'Doctors Database' | 'Horizon Series' | 'Webinar Invitations' | 'Social Media Records' | 'Reports & Analytics' | 'Notifications' | 'Team Members' | 'Settings';
-type Status = 'To Do' | 'In Progress' | 'Under Review' | 'Completed';
-type Priority = 'High' | 'Medium' | 'Low';
+const API = "http://localhost:5000/api";
+
+type View =
+  | "Dashboard"
+  | "My Tasks"
+  | "Kanban Board"
+  | "Calendar"
+  | "Doctors Database"
+  | "Horizon Series"
+  | "Webinar Invitations"
+  | "Social Media Records"
+  | "Reports & Analytics"
+  | "Notifications"
+  | "Team Members"
+  | "Settings";
+
+type Status =
+  | "To Do"
+  | "In Progress"
+  | "Under Review"
+  | "Completed";
+
+type Priority = "High" | "Medium" | "Low";
 
 type Task = {
   id: number;
@@ -18,152 +62,2121 @@ type Task = {
   priority: Priority;
   assignee: string;
   initials: string;
-  due: string;
+  due_date?: string;
   progress: number;
   comments: number;
   attachments: number;
   risk?: string;
 };
 
-const navigation: { label: View; icon: typeof LayoutDashboard }[] = [
-  { label: 'Dashboard', icon: LayoutDashboard }, { label: 'My Tasks', icon: ListTodo },
-  { label: 'Kanban Board', icon: ClipboardList }, { label: 'Calendar', icon: CalendarDays },
-  { label: 'Doctors Database', icon: Database }, { label: 'Horizon Series', icon: Video },
-  { label: 'Webinar Invitations', icon: Send }, { label: 'Social Media Records', icon: Share2 },
-  { label: 'Reports & Analytics', icon: BarChart3 }, { label: 'Notifications', icon: Bell },
-  { label: 'Team Members', icon: Users }, { label: 'Settings', icon: Settings },
+type Doctor = {
+  id: number;
+  name: string;
+  specialty: string;
+  organization: string;
+  location: string;
+  status: string;
+};
+
+type Webinar = {
+  id: number;
+  title: string;
+  event_date: string;
+  invited: number;
+  registered: number;
+  status: string;
+};
+
+type SocialRecord = {
+  id: number;
+  post: string;
+  channel: string;
+  post_date: string;
+  reach: string;
+  engagement: string;
+  status: string;
+};
+
+type Notification = {
+  id: number;
+  type: string;
+  title: string;
+  source?: string;
+  is_read: boolean;
+  created_at: string;
+};
+
+type TeamMember = {
+  id: number;
+  name: string;
+  role: string;
+  assigned_tasks: number;
+  completed_tasks: number;
+  productivity: number;
+  initials: string;
+};
+
+type DashboardStats = {
+  total: number;
+  pending: number;
+  completed: number;
+  overdue: number;
+  upcoming: number;
+};
+
+const navigation: {
+  label: View;
+  icon: typeof LayoutDashboard;
+}[] = [
+  { label: "Dashboard", icon: LayoutDashboard },
+  { label: "My Tasks", icon: ListTodo },
+  { label: "Kanban Board", icon: ClipboardList },
+  { label: "Calendar", icon: CalendarDays },
+  { label: "Doctors Database", icon: Database },
+  { label: "Horizon Series", icon: Video },
+  { label: "Webinar Invitations", icon: Send },
+  { label: "Social Media Records", icon: Share2 },
+  { label: "Reports & Analytics", icon: BarChart3 },
+  { label: "Notifications", icon: Bell },
+  { label: "Team Members", icon: Users },
+  { label: "Settings", icon: Settings },
 ];
 
-const initialTasks: Task[] = [
-  { id: 1, title: 'Confirm keynote speaker briefing', project: 'Horizon Series', status: 'In Progress', priority: 'High', assignee: 'Amelia', initials: 'AM', due: 'Today', progress: 65, comments: 4, attachments: 2, risk: 'Speaker availability' },
-  { id: 2, title: 'Review media kit for Q2 launch', project: 'Press Relations', status: 'Under Review', priority: 'High', assignee: 'Jordan', initials: 'JR', due: 'May 20', progress: 85, comments: 6, attachments: 4 },
-  { id: 3, title: 'Build invite list for cardiology webinar', project: 'Webinar Outreach', status: 'To Do', priority: 'Medium', assignee: 'Priya', initials: 'PS', due: 'May 23', progress: 15, comments: 1, attachments: 1 },
-  { id: 4, title: 'Schedule physician spotlight posts', project: 'Social Media', status: 'To Do', priority: 'Medium', assignee: 'Lena', initials: 'LC', due: 'May 24', progress: 10, comments: 2, attachments: 3 },
-  { id: 5, title: 'Publish webinar recap newsletter', project: 'Horizon Series', status: 'Completed', priority: 'Low', assignee: 'Amelia', initials: 'AM', due: 'May 16', progress: 100, comments: 3, attachments: 2 },
-  { id: 6, title: 'Follow up with health editors', project: 'Press Relations', status: 'In Progress', priority: 'Medium', assignee: 'Noah', initials: 'NT', due: 'May 21', progress: 40, comments: 5, attachments: 0 },
-  { id: 7, title: 'Approve May content calendar', project: 'Social Media', status: 'Completed', priority: 'Low', assignee: 'Lena', initials: 'LC', due: 'May 15', progress: 100, comments: 2, attachments: 1 },
-];
+const classNames = (
+  ...values: (string | false | undefined)[]
+) => values.filter(Boolean).join(" ");
 
-const doctors = [
-  ['Dr. Maya Patel', 'Cardiology', 'Northwell Health', 'New York', 'Active'],
-  ['Dr. James Okafor', 'Oncology', 'Cleveland Clinic', 'Ohio', 'Contacted'],
-  ['Dr. Sofia Nguyen', 'Neurology', 'Mass General', 'Boston', 'Active'],
-  ['Dr. Daniel Kim', 'Endocrinology', 'UCLA Health', 'Los Angeles', 'Pending'],
-  ['Dr. Elena Rossi', 'Pediatrics', 'Boston Children’s', 'Boston', 'Active'],
-];
-const webinarRecords = [
-  ['Future of Cardiac Care', 'May 28, 2024', '1,248', '782', '62.7%', 'Live'],
-  ['Precision Oncology Today', 'Jun 12, 2024', '964', '438', '45.4%', 'Draft'],
-  ['Beyond Burnout: Clinician Care', 'Jun 26, 2024', '1,575', '—', '—', 'Planning'],
-  ['Pediatric Innovation Forum', 'Jul 10, 2024', '896', '—', '—', 'Planning'],
-];
-const socialRecords = [
-  ['Physician spotlight: Dr. Patel', 'LinkedIn', 'May 17', '18.4K', '6.8%', 'Published'],
-  ['Horizon Series teaser', 'Instagram', 'May 18', '12.1K', '8.2%', 'Scheduled'],
-  ['Webinar registration reminder', 'X / Twitter', 'May 19', '8.7K', '4.1%', 'Published'],
-  ['Research insight carousel', 'LinkedIn', 'May 21', '—', '—', 'In review'],
-];
+const statusClass: Record<Status, string> = {
+  "To Do": "bg-slate-100 text-slate-600",
+  "In Progress": "bg-amber-50 text-amber-700",
+  "Under Review": "bg-blue-50 text-blue-700",
+  Completed: "bg-emerald-50 text-emerald-700",
+};
 
-const classNames = (...values: (string | false | undefined)[]) => values.filter(Boolean).join(' ');
-const statusClass: Record<Status, string> = { 'To Do': 'bg-slate-100 text-slate-600', 'In Progress': 'bg-amber-50 text-amber-700', 'Under Review': 'bg-blue-50 text-blue-700', Completed: 'bg-emerald-50 text-emerald-700' };
-const priorityClass: Record<Priority, string> = { High: 'bg-red-50 text-red-600', Medium: 'bg-amber-50 text-amber-600', Low: 'bg-emerald-50 text-emerald-600' };
+const priorityClass: Record<Priority, string> = {
+  High: "bg-red-50 text-red-600",
+  Medium: "bg-amber-50 text-amber-600",
+  Low: "bg-emerald-50 text-emerald-600",
+};
 
-function MetricCard({ title, value, change, icon: Icon, tone }: { title: string; value: string; change: string; icon: typeof ClipboardList; tone: string }) {
-  return <div className="rounded-xl bg-jcf-card-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 transition-transform hover:-translate-y-0.5 dark:bg-slate-800 dark:ring-slate-700">
-    <div className="flex items-start justify-between"><div><p className="text-sm font-medium text-jcf-text-secondary dark:text-slate-400">{title}</p><p className="mt-2 text-2xl font-bold text-jcf-text-primary dark:text-white">{value}</p></div><div className={classNames('rounded-lg p-2.5', tone)}><Icon className="h-5 w-5" /></div></div>
-    <p className="mt-4 text-xs font-medium text-emerald-600"><TrendingUp className="mr-1 inline h-3.5 w-3.5" />{change} <span className="font-normal text-jcf-text-secondary dark:text-slate-400">vs. last week</span></p>
-  </div>;
+function Avatar({ initials }: { initials?: string }) {
+  return (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E4EEE4] text-[10px] font-bold text-[#4F7150]">
+      {initials || "??"}
+    </span>
+  );
 }
 
-function Avatar({ initials }: { initials: string }) { return <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-jcf-soft-green text-[10px] font-bold text-jcf-primary-green">{initials}</span>; }
+function MetricCard({
+  title,
+  value,
+  change,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: string;
+  change: string;
+  icon: typeof ClipboardList;
+  tone: string;
+}) {
+  return (
+    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition-transform hover:-translate-y-0.5">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">
+            {title}
+          </p>
 
-function TaskCard({ task, draggable = false, onDragStart }: { task: Task; draggable?: boolean; onDragStart?: () => void }) {
-  return <article draggable={draggable} onDragStart={onDragStart} className="rounded-lg border border-jcf-border-light bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-    <div className="flex items-start gap-2"><span className={classNames('mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold', priorityClass[task.priority])}>{task.priority}</span>{draggable && <GripVertical className="ml-auto h-4 w-4 text-slate-300" />}</div>
-    <h4 className="mt-2.5 text-sm font-semibold leading-5 text-jcf-text-primary dark:text-white">{task.title}</h4><p className="mt-1 text-xs text-jcf-text-secondary dark:text-slate-400">{task.project}</p>
-    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700"><div className="h-full rounded-full bg-jcf-secondary-green" style={{ width: `${task.progress}%` }} /></div>
-    <div className="mt-3 flex items-center justify-between"><Avatar initials={task.initials} /><div className="flex items-center gap-2 text-[11px] text-jcf-text-secondary dark:text-slate-400"><span className="flex items-center gap-0.5"><MessageCircle className="h-3.5 w-3.5" />{task.comments}</span><span className="flex items-center gap-0.5"><Paperclip className="h-3.5 w-3.5" />{task.attachments}</span><span className={classNames('font-medium', task.due === 'Today' && 'text-red-600')}>{task.due}</span></div></div>
-  </article>;
+          <p className="mt-2 text-2xl font-bold text-slate-900">
+            {value}
+          </p>
+        </div>
+
+        <div className={classNames("rounded-lg p-2.5", tone)}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+
+      <p className="mt-4 text-xs font-medium text-emerald-600">
+        <TrendingUp className="mr-1 inline h-3.5 w-3.5" />
+        {change}
+      </p>
+    </div>
+  );
 }
 
-function MiniBars({ values, labels }: { values: number[]; labels: string[] }) {
-  return <div className="mt-6 flex h-44 items-end justify-between gap-3 border-b border-jcf-border-light pb-1">{values.map((value, index) => <div key={labels[index]} className="flex h-full flex-1 flex-col justify-end gap-2 text-center"><div className="group relative rounded-t-md bg-jcf-secondary-green/85 transition-all hover:bg-jcf-primary-green" style={{ height: `${value}%` }}><span className="absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded bg-jcf-text-primary px-1.5 py-0.5 text-[10px] text-white group-hover:block">{value}%</span></div><span className="text-[10px] text-jcf-text-secondary">{labels[index]}</span></div>)}</div>;
+function TaskCard({
+  task,
+  onDragStart,
+}: {
+  task: Task;
+  onDragStart: () => void;
+}) {
+  return (
+    <article
+      draggable
+      onDragStart={onDragStart}
+      className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md"
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className={classNames(
+            "mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold",
+            priorityClass[task.priority]
+          )}
+        >
+          {task.priority}
+        </span>
+
+        <GripVertical className="ml-auto h-4 w-4 text-slate-300" />
+      </div>
+
+      <h4 className="mt-2.5 text-sm font-semibold leading-5 text-slate-900">
+        {task.title}
+      </h4>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {task.project}
+      </p>
+
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-[#4F7150]"
+          style={{ width: `${task.progress || 0}%` }}
+        />
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <Avatar initials={task.initials} />
+
+        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <span className="flex items-center gap-0.5">
+            <MessageCircle className="h-3.5 w-3.5" />
+            {task.comments || 0}
+          </span>
+
+          <span className="flex items-center gap-0.5">
+            <Paperclip className="h-3.5 w-3.5" />
+            {task.attachments || 0}
+          </span>
+
+          <span className="font-medium">
+            {task.due_date || "No date"}
+          </span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function PageTitle({
+  title,
+  subtitle,
+  action = true,
+  onCreate,
+}: {
+  title: string;
+  subtitle: string;
+  action?: boolean;
+  onCreate?: () => void;
+}) {
+  return (
+    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold text-[#4F7150]">
+          PR TEAM WORKSPACE
+        </p>
+
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          {title}
+        </h1>
+
+        <p className="mt-1 text-sm text-slate-500">
+          {subtitle}
+        </p>
+      </div>
+
+      {action && (
+        <button
+          onClick={onCreate}
+          className="flex items-center gap-2 rounded-lg bg-[#4F7150] px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-[#3f5c40]"
+        >
+          <Plus className="h-4 w-4" />
+          Create Task
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function PRDashboard() {
-  const [view, setView] = useState<View>('Dashboard');
+  const [view, setView] = useState<View>("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [tasks, setTasks] = useState(initialTasks);
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'All' | Status>('All');
-  const [draggedTask, setDraggedTask] = useState<number | null>(null);
+
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [webinars, setWebinars] = useState<Webinar[]>([]);
+  const [socialRecords, setSocialRecords] = useState<SocialRecord[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+
+  const [stats, setStats] = useState<DashboardStats>({
+    total: 0,
+    pending: 0,
+    completed: 0,
+    overdue: 0,
+    upcoming: 0,
+  });
+
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"All" | Status>("All");
+
+  const [draggedTask, setDraggedTask] =
+    useState<number | null>(null);
+
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const [role, setRole] = useState('Project Manager');
 
-  const filteredTasks = useMemo(() => tasks.filter(task => (filter === 'All' || task.status === filter) && `${task.title} ${task.project} ${task.assignee}`.toLowerCase().includes(query.toLowerCase())), [tasks, query, filter]);
-  const changeView = (next: View) => { setView(next); setSidebarOpen(false); };
-  const moveTask = (status: Status) => { if (draggedTask) setTasks(items => items.map(item => item.id === draggedTask ? { ...item, status, progress: status === 'Completed' ? 100 : item.progress } : item)); setDraggedTask(null); };
+  const [role, setRole] = useState("Project Manager");
 
-  const content = () => {
-    if (view === 'Dashboard') return <DashboardHome tasks={tasks} onNavigate={changeView} />;
-    if (view === 'Kanban Board') return <Kanban tasks={tasks} setDraggedTask={setDraggedTask} moveTask={moveTask} />;
-    if (view === 'My Tasks') return <TasksView tasks={filteredTasks} query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} />;
-    if (view === 'Calendar') return <CalendarView tasks={tasks} />;
-    if (view === 'Doctors Database') return <DataTable title="Doctors Database" subtitle="Build and nurture relationships with clinical thought leaders." columns={['Doctor', 'Specialty', 'Organization', 'Location', 'Status']} rows={doctors} search={query} setSearch={setQuery} />;
-    if (view === 'Webinar Invitations') return <DataTable title="Webinar Invitations" subtitle="Monitor outreach and registration performance across upcoming events." columns={['Webinar', 'Date', 'Invited', 'Registered', 'Conversion', 'Status']} rows={webinarRecords} search={query} setSearch={setQuery} />;
-    if (view === 'Horizon Series') return <HorizonView />;
-    if (view === 'Social Media Records') return <DataTable title="Social Media Records" subtitle="Track every PR social activation in one place." columns={['Post', 'Channel', 'Date', 'Reach', 'Engagement', 'Status']} rows={socialRecords} search={query} setSearch={setQuery} />;
-    if (view === 'Reports & Analytics') return <Reports />;
-    if (view === 'Notifications') return <Notifications />;
-    if (view === 'Team Members') return <TeamView />;
-    return <SettingsView role={role} setRole={setRole} />;
+  const [loading, setLoading] = useState(true);
+
+  /*
+   * FETCH ALL DATA FROM BACKEND
+   */
+
+  const fetchTasks = async () => {
+    const response = await fetch(`${API}/tasks`);
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch tasks");
+    }
+
+    const data = await response.json();
+    setTasks(data);
   };
 
-  return <div className="min-h-screen bg-jcf-bg-cream font-sans text-jcf-text-primary dark:bg-slate-900 dark:text-white">
-    {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-30 bg-black/40 lg:hidden" />}
-    <aside className={classNames('fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-jcf-primary-green text-white transition-transform duration-300 lg:translate-x-0', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
-      <div className="flex h-[73px] items-center gap-3 border-b border-white/15 px-6"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white font-bold text-jcf-primary-green">JC</div><div><p className="font-bold tracking-tight">JCF Central</p><p className="text-[10px] text-white/65">PUBLIC RELATIONS</p></div><button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden"><X className="h-5 w-5" /></button></div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">{navigation.map(({ label, icon: Icon }) => <button key={label} onClick={() => changeView(label)} className={classNames('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors', view === label ? 'bg-white/15 font-semibold shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white')}><Icon className="h-4.5 w-4.5" /><span>{label}</span>{label === 'Notifications' && <span className="ml-auto rounded-full bg-jcf-warning px-1.5 py-0.5 text-[10px] font-bold text-white">3</span>}</button>)}</nav>
-      <div className="border-t border-white/15 p-4"><div className="flex items-center gap-3 rounded-lg bg-white/10 p-3"><Avatar initials="AM" /><div className="min-w-0"><p className="truncate text-xs font-semibold">Amelia Martin</p><p className="truncate text-[10px] text-white/65">{role}</p></div><ChevronDown className="ml-auto h-4 w-4 text-white/70" /></div></div>
-    </aside>
-    <main className="min-h-screen lg:pl-64">
-      <header className="sticky top-0 z-20 flex h-[73px] items-center gap-4 border-b border-jcf-border-light bg-jcf-card-white px-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:px-6">
-        <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-700"><Menu className="h-5 w-5" /></button>
-        <div className="hidden max-w-md flex-1 items-center gap-2 rounded-lg border border-jcf-border-light bg-jcf-bg-cream px-3 py-2 sm:flex dark:border-slate-700 dark:bg-slate-900"><Search className="h-4 w-4 text-jcf-text-secondary" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search tasks, doctors, or records..." className="w-full bg-transparent text-sm outline-none placeholder:text-jcf-text-secondary/80" /></div>
-        <div className="ml-auto hidden text-right xl:block"><p className="text-xs font-semibold">Monday, May 20</p><p className="text-[11px] text-jcf-text-secondary">Week 21, 2024</p></div><div className="h-8 border-l border-jcf-border-light dark:border-slate-700" />
-        <button onClick={() => setNoticeOpen(!noticeOpen)} className="relative rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-700"><Bell className="h-5 w-5" /><span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-jcf-danger ring-2 ring-white dark:ring-slate-800" /></button>
-        {noticeOpen && <div className="absolute right-20 top-16 w-72 rounded-xl border border-jcf-border-light bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-800"><p className="px-2 pb-2 text-sm font-bold">New notifications</p><p className="rounded-lg bg-jcf-bg-cream p-2 text-xs dark:bg-slate-700">Jordan tagged you on “Media kit for Q2 launch”.</p></div>}
-        <Avatar initials="AM" /><button onClick={() => changeView('My Tasks')} className="hidden items-center gap-2 rounded-lg bg-jcf-primary-green px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-jcf-secondary-green sm:flex"><Plus className="h-4 w-4" />Create Task</button>
-      </header>
-      <div className="p-4 sm:p-6 lg:p-8">{content()}</div>
-    </main>
-  </div>;
+  const fetchDoctors = async () => {
+    const response = await fetch(`${API}/doctors`);
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch doctors");
+    }
+
+    const data = await response.json();
+    setDoctors(data);
+  };
+
+  const fetchWebinars = async () => {
+    const response = await fetch(`${API}/webinars`);
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch webinars");
+    }
+
+    const data = await response.json();
+    setWebinars(data);
+  };
+
+  const fetchSocial = async () => {
+    const response = await fetch(`${API}/social`);
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch social records");
+    }
+
+    const data = await response.json();
+    setSocialRecords(data);
+  };
+
+  const fetchNotifications = async () => {
+    const response = await fetch(
+      `${API}/notifications`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch notifications");
+    }
+
+    const data = await response.json();
+    setNotifications(data);
+  };
+
+  const fetchTeam = async () => {
+    const response = await fetch(`${API}/team`);
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch team");
+    }
+
+    const data = await response.json();
+    setTeam(data);
+  };
+
+  const fetchStats = async () => {
+    const response = await fetch(
+      `${API}/dashboard/stats`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch dashboard stats");
+    }
+
+    const data = await response.json();
+    setStats(data);
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      await Promise.all([
+        fetchTasks(),
+        fetchDoctors(),
+        fetchWebinars(),
+        fetchSocial(),
+        fetchNotifications(),
+        fetchTeam(),
+        fetchStats(),
+      ]);
+    } catch (error) {
+      console.error("Dashboard loading error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  /*
+   * SEARCH + FILTER
+   */
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesStatus =
+        filter === "All" || task.status === filter;
+
+      const text =
+        `${task.title} ${task.project} ${task.assignee}`.toLowerCase();
+
+      const matchesSearch = text.includes(
+        query.toLowerCase()
+      );
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [tasks, query, filter]);
+
+  /*
+   * NAVIGATION
+   */
+
+  const changeView = (next: View) => {
+    setView(next);
+    setSidebarOpen(false);
+  };
+
+  /*
+   * KANBAN UPDATE
+   */
+
+  const moveTask = async (status: Status) => {
+    if (!draggedTask) return;
+
+    try {
+      const response = await fetch(
+        `${API}/tasks/${draggedTask}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      const updatedTask = await response.json();
+
+      setTasks((items) =>
+        items.map((item) =>
+          item.id === updatedTask.id
+            ? updatedTask
+            : item
+        )
+      );
+
+      fetchStats();
+    } catch (error) {
+      console.error("Task update error:", error);
+    }
+
+    setDraggedTask(null);
+  };
+
+  /*
+   * CREATE TASK
+   */
+
+  const createTask = async () => {
+    const title = window.prompt("Enter task title:");
+
+    if (!title) return;
+
+    try {
+      const response = await fetch(`${API}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          project: "PR Workspace",
+          status: "To Do",
+          priority: "Medium",
+          assignee: "Amelia",
+          initials: "AM",
+          progress: 0,
+          comments: 0,
+          attachments: 0,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create task");
+      }
+
+      const newTask = await response.json();
+
+      setTasks((prev) => [newTask, ...prev]);
+
+      fetchStats();
+    } catch (error) {
+      console.error("Create task error:", error);
+    }
+  };
+
+  /*
+   * CURRENT VIEW
+   */
+
+  const content = () => {
+    if (loading) {
+      return (
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-sm text-slate-500">
+            Loading workspace...
+          </div>
+        </div>
+      );
+    }
+
+    if (view === "Dashboard") {
+      return (
+        <DashboardHome
+          stats={stats}
+          tasks={tasks}
+          notifications={notifications}
+          onNavigate={changeView}
+        />
+      );
+    }
+
+    if (view === "Kanban Board") {
+      return (
+        <Kanban
+          tasks={tasks}
+          setDraggedTask={setDraggedTask}
+          moveTask={moveTask}
+          onCreate={createTask}
+        />
+      );
+    }
+
+    if (view === "My Tasks") {
+      return (
+        <TasksView
+          tasks={filteredTasks}
+          query={query}
+          setQuery={setQuery}
+          filter={filter}
+          setFilter={setFilter}
+        />
+      );
+    }
+
+    if (view === "Calendar") {
+      return <CalendarView tasks={tasks} />;
+    }
+
+    if (view === "Doctors Database") {
+      return (
+        <DoctorsView
+          doctors={doctors}
+          search={query}
+          setSearch={setQuery}
+        />
+      );
+    }
+
+    if (view === "Webinar Invitations") {
+      return (
+        <WebinarsView
+          webinars={webinars}
+          search={query}
+          setSearch={setQuery}
+        />
+      );
+    }
+
+    if (view === "Horizon Series") {
+      return (
+        <HorizonView
+          webinars={webinars}
+          tasks={tasks}
+        />
+      );
+    }
+
+    if (view === "Social Media Records") {
+      return (
+        <SocialView
+          records={socialRecords}
+          search={query}
+          setSearch={setQuery}
+        />
+      );
+    }
+
+    if (view === "Reports & Analytics") {
+      return (
+        <Reports
+          stats={stats}
+          webinars={webinars}
+          socialRecords={socialRecords}
+        />
+      );
+    }
+
+    if (view === "Notifications") {
+      return (
+        <NotificationsView
+          notifications={notifications}
+          refresh={fetchNotifications}
+        />
+      );
+    }
+
+    if (view === "Team Members") {
+      return <TeamView team={team} />;
+    }
+
+    return (
+      <SettingsView
+        role={role}
+        setRole={setRole}
+      />
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F5EF] font-sans text-slate-900">
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+        />
+      )}
+
+      {/* SIDEBAR */}
+
+      <aside
+        className={classNames(
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#4F7150] text-white transition-transform duration-300 lg:translate-x-0",
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-[73px] items-center gap-3 border-b border-white/15 px-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white font-bold text-[#4F7150]">
+            JC
+          </div>
+
+          <div>
+            <p className="font-bold tracking-tight">
+              JCF Central
+            </p>
+
+            <p className="text-[10px] text-white/65">
+              PUBLIC RELATIONS
+            </p>
+          </div>
+
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="ml-auto lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+          {navigation.map(
+            ({ label, icon: Icon }) => (
+              <button
+                key={label}
+                onClick={() => changeView(label)}
+                className={classNames(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
+                  view === label
+                    ? "bg-white/20 font-semibold"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+
+                <span>{label}</span>
+
+                {label === "Notifications" &&
+                  notifications.filter(
+                    (n) => !n.is_read
+                  ).length > 0 && (
+                    <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {
+                        notifications.filter(
+                          (n) => !n.is_read
+                        ).length
+                      }
+                    </span>
+                  )}
+              </button>
+            )
+          )}
+        </nav>
+
+        <div className="border-t border-white/15 p-4">
+          <div className="flex items-center gap-3 rounded-lg bg-white/10 p-3">
+            <Avatar initials="AM" />
+
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold">
+                Amelia Martin
+              </p>
+
+              <p className="truncate text-[10px] text-white/65">
+                {role}
+              </p>
+            </div>
+
+            <ChevronDown className="ml-auto h-4 w-4 text-white/70" />
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN */}
+
+      <main className="min-h-screen lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-[73px] items-center gap-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-2 hover:bg-slate-100 lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <div className="hidden max-w-md flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-[#F7F5EF] px-3 py-2 sm:flex">
+            <Search className="h-4 w-4 text-slate-400" />
+
+            <input
+              value={query}
+              onChange={(event) =>
+                setQuery(event.target.value)
+              }
+              placeholder="Search tasks, doctors, or records..."
+              className="w-full bg-transparent text-sm outline-none"
+            />
+          </div>
+
+          <div className="ml-auto hidden text-right xl:block">
+            <p className="text-xs font-semibold">
+              {new Date().toLocaleDateString(
+                "en-US",
+                {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                }
+              )}
+            </p>
+
+            <p className="text-[11px] text-slate-500">
+              PR Workspace
+            </p>
+          </div>
+
+          <div className="h-8 border-l border-slate-200" />
+
+          <button
+            onClick={() =>
+              setNoticeOpen(!noticeOpen)
+            }
+            className="relative rounded-lg p-2 hover:bg-slate-100"
+          >
+            <Bell className="h-5 w-5" />
+
+            {notifications.some(
+              (n) => !n.is_read
+            ) && (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+            )}
+          </button>
+
+          <Avatar initials="AM" />
+
+          <button
+            onClick={createTask}
+            className="hidden items-center gap-2 rounded-lg bg-[#4F7150] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3f5c40] sm:flex"
+          >
+            <Plus className="h-4 w-4" />
+            Create Task
+          </button>
+
+          {noticeOpen && (
+            <div className="absolute right-20 top-16 w-80 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+              <p className="px-2 pb-2 text-sm font-bold">
+                Notifications
+              </p>
+
+              {notifications.length === 0 ? (
+                <p className="p-3 text-xs text-slate-500">
+                  No notifications
+                </p>
+              ) : (
+                notifications
+                  .slice(0, 3)
+                  .map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="rounded-lg bg-[#F7F5EF] p-2 text-xs"
+                    >
+                      {notification.title}
+                    </div>
+                  ))
+              )}
+            </div>
+          )}
+        </header>
+
+        <div className="p-4 sm:p-6 lg:p-8">
+          {content()}
+        </div>
+      </main>
+    </div>
+  );
 }
 
-function PageTitle({ title, subtitle, action = true }: { title: string; subtitle: string; action?: boolean }) { return <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-jcf-secondary-green">PR TEAM WORKSPACE</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-jcf-text-primary dark:text-white sm:text-3xl">{title}</h1><p className="mt-1 text-sm text-jcf-text-secondary dark:text-slate-400">{subtitle}</p></div>{action && <button className="flex items-center gap-2 rounded-lg bg-jcf-primary-green px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-jcf-secondary-green"><Plus className="h-4 w-4" />Create Task</button>}</div>; }
+/* ============================================================
+   DASHBOARD
+============================================================ */
 
-function DashboardHome({ tasks, onNavigate }: { tasks: Task[]; onNavigate: (value: View) => void }) { const completed = tasks.filter(task => task.status === 'Completed').length; return <><PageTitle title="Good morning, Amelia" subtitle="Here’s how the PR team is moving key initiatives forward." /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><MetricCard title="Total Tasks" value="48" change="12.5%" icon={ClipboardList} tone="bg-jcf-soft-green/40 text-jcf-primary-green" /><MetricCard title="Pending Tasks" value="17" change="4.2%" icon={Clock3} tone="bg-amber-50 text-amber-600" /><MetricCard title="Completed" value="{completed.toString().padStart(2, '0')}" change="18.4%" icon={CheckCircle2} tone="bg-emerald-50 text-emerald-600" /><MetricCard title="Overdue Tasks" value="03" change="2 tasks cleared" icon={AlertTriangle} tone="bg-red-50 text-red-600" /><MetricCard title="Upcoming Deadlines" value="06" change="Next 7 days" icon={Calendar} tone="bg-blue-50 text-blue-600" /></div>
-  <div className="mt-6 grid gap-6 xl:grid-cols-3"><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 xl:col-span-2 dark:bg-slate-800 dark:ring-slate-700"><div className="flex items-center justify-between"><div><h2 className="font-bold">Task productivity</h2><p className="mt-1 text-xs text-jcf-text-secondary">Completed tasks over the last 6 months</p></div><button onClick={() => onNavigate('Reports & Analytics')} className="text-xs font-semibold text-jcf-primary-green hover:underline">View report</button></div><MiniBars values={[42, 58, 48, 70, 64, 88]} labels={['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May']} /></section><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><div className="flex items-center justify-between"><h2 className="font-bold">Upcoming events</h2><CalendarDays className="h-4 w-4 text-jcf-secondary-green" /></div><div className="mt-5 space-y-4"><Event date="22" month="MAY" title="Media strategy review" time="10:00 AM · Conference room" /><Event date="28" month="MAY" title="Cardiac Care Webinar" time="2:00 PM · Live webinar" /><Event date="30" month="MAY" title="Horizon speaker sync" time="11:30 AM · Google Meet" /></div></section></div>
-  <div className="mt-6 grid gap-6 xl:grid-cols-3"><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 xl:col-span-2 dark:bg-slate-800 dark:ring-slate-700"><div className="flex items-center justify-between"><div><h2 className="font-bold">Recent activity</h2><p className="mt-1 text-xs text-jcf-text-secondary">Latest updates from your team</p></div><button className="text-xs font-semibold text-jcf-primary-green">View all</button></div><div className="mt-4 divide-y divide-jcf-border-light dark:divide-slate-700"><Activity initials="JR" text={<><b>Jordan Reed</b> moved “Media kit for Q2 launch” to <b>Under Review</b></>} time="12 min ago" /><Activity initials="LC" text={<><b>Lena Chen</b> scheduled a new social post for the Horizon Series</>} time="48 min ago" /><Activity initials="PS" text={<><b>Priya Shah</b> added 42 doctors to the cardiology outreach list</>} time="2 hrs ago" /></div></section><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><div className="flex items-center justify-between"><h2 className="font-bold">Attention needed</h2><AlertTriangle className="h-4 w-4 text-jcf-warning" /></div><div className="mt-4 space-y-3"><div className="rounded-lg border-l-4 border-red-400 bg-red-50 p-3"><p className="text-xs font-semibold text-red-700">Keynote approval is at risk</p><p className="mt-1 text-[11px] text-red-600">Due today · Owner: Amelia</p></div><div className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-700">12 webinar invitations unanswered</p><p className="mt-1 text-[11px] text-amber-600">Follow up by Wednesday</p></div></div></section></div></>; }
-function Event({ date, month, title, time }: { date: string; month: string; title: string; time: string }) { return <div className="flex gap-3"><div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-jcf-bg-cream text-jcf-primary-green dark:bg-slate-700"><span className="text-sm font-bold leading-none">{date}</span><span className="mt-0.5 text-[8px] font-bold">{month}</span></div><div><p className="text-sm font-semibold">{title}</p><p className="mt-0.5 text-xs text-jcf-text-secondary">{time}</p></div></div>; }
-function Activity({ initials, text, time }: { initials: string; text: React.ReactNode; time: string }) { return <div className="flex gap-3 py-3"><Avatar initials={initials} /><div className="min-w-0"><p className="text-xs leading-5 text-jcf-text-secondary dark:text-slate-300">{text}</p><p className="mt-0.5 text-[10px] text-jcf-text-secondary/70">{time}</p></div></div>; }
+function DashboardHome({
+  stats,
+  tasks,
+  notifications,
+  onNavigate,
+}: {
+  stats: DashboardStats;
+  tasks: Task[];
+  notifications: Notification[];
+  onNavigate: (value: View) => void;
+}) {
+  const completedTasks = tasks.filter(
+    (task) => task.status === "Completed"
+  );
 
-function Kanban({ tasks, setDraggedTask, moveTask }: { tasks: Task[]; setDraggedTask: (id: number) => void; moveTask: (status: Status) => void }) { const columns: Status[] = ['To Do', 'In Progress', 'Under Review', 'Completed']; return <><PageTitle title="Kanban Board" subtitle="Move PR work forward across the team’s delivery workflow." /><div className="grid min-w-[980px] grid-cols-4 gap-4 overflow-x-auto pb-4">{columns.map((column, index) => { const items = tasks.filter(task => task.status === column); return <section onDragOver={event => event.preventDefault()} onDrop={() => moveTask(column)} key={column} className="rounded-xl bg-white/60 p-3 dark:bg-slate-800/70"><div className="mb-3 flex items-center justify-between px-1"><div className="flex items-center gap-2"><span className={classNames('h-2 w-2 rounded-full', ['bg-slate-400', 'bg-amber-400', 'bg-blue-500', 'bg-emerald-500'][index])} /><h2 className="text-sm font-bold">{column}</h2><span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">{items.length}</span></div><MoreHorizontal className="h-4 w-4 text-jcf-text-secondary" /></div><div className="space-y-3">{items.map(task => <TaskCard key={task.id} task={task} draggable onDragStart={() => setDraggedTask(task.id)} />)}<button className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-jcf-text-secondary hover:bg-white dark:hover:bg-slate-700"><Plus className="h-4 w-4" />Add task</button></div></section>; })}</div></>; }
+  return (
+    <>
+      <PageTitle
+        title="Good morning, Amelia"
+        subtitle="Here’s how the PR team is moving key initiatives forward."
+        onCreate={() => onNavigate("My Tasks")}
+      />
 
-function TasksView({ tasks, query, setQuery, filter, setFilter }: { tasks: Task[]; query: string; setQuery: (value: string) => void; filter: 'All' | Status; setFilter: (value: 'All' | Status) => void }) { return <><PageTitle title="My Tasks" subtitle="Your assigned work across PR campaigns and programs." /><div className="rounded-xl bg-white shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><div className="flex flex-wrap gap-3 border-b border-jcf-border-light p-4 dark:border-slate-700"><div className="flex flex-1 items-center gap-2 rounded-lg border border-jcf-border-light px-3 py-2 dark:border-slate-700"><Search className="h-4 w-4 text-jcf-text-secondary" /><input value={query} onChange={event => setQuery(event.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Search your tasks..." /></div><div className="flex gap-2">{(['All', 'To Do', 'In Progress', 'Under Review', 'Completed'] as const).map(item => <button onClick={() => setFilter(item)} className={classNames('rounded-lg px-3 py-2 text-xs font-semibold', filter === item ? 'bg-jcf-primary-green text-white' : 'bg-jcf-bg-cream text-jcf-text-secondary dark:bg-slate-700')}>{item}</button>)}</div></div><div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left"><thead className="bg-jcf-bg-cream text-[11px] uppercase tracking-wide text-jcf-text-secondary dark:bg-slate-700"><tr><th className="px-5 py-3 font-semibold">Task</th><th className="px-4 py-3 font-semibold">Priority</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-4 py-3 font-semibold">Due date</th><th className="px-4 py-3 font-semibold">Progress</th><th className="px-4 py-3" /></tr></thead><tbody>{tasks.map(task => <tr key={task.id} className="border-t border-jcf-border-light text-sm dark:border-slate-700"><td className="px-5 py-4"><p className="font-semibold">{task.title}</p><p className="mt-0.5 text-xs text-jcf-text-secondary">{task.project}</p></td><td className="px-4 py-4"><span className={classNames('rounded px-2 py-1 text-xs font-semibold', priorityClass[task.priority])}>{task.priority}</span></td><td className="px-4 py-4"><span className={classNames('rounded px-2 py-1 text-xs font-semibold', statusClass[task.status])}>{task.status}</span></td><td className="px-4 py-4 text-xs font-medium">{task.due}</td><td className="px-4 py-4"><div className="flex items-center gap-2"><div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700"><div className="h-full bg-jcf-secondary-green" style={{ width: `${task.progress}%` }} /></div><span className="text-xs text-jcf-text-secondary">{task.progress}%</span></div></td><td className="px-4 py-4"><button><MoreHorizontal className="h-4 w-4 text-jcf-text-secondary" /></button></td></tr>)}</tbody></table></div></div></>; }
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard
+          title="Total Tasks"
+          value={String(stats.total)}
+          change="Live"
+          icon={ClipboardList}
+          tone="bg-[#E4EEE4] text-[#4F7150]"
+        />
 
-function CalendarView({ tasks }: { tasks: Task[] }) { return <><PageTitle title="Calendar" subtitle="A clear view of team deadlines, events, and publishing dates." action={false} /><div className="grid gap-6 xl:grid-cols-4"><div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 xl:col-span-3 dark:bg-slate-800 dark:ring-slate-700"><div className="mb-6 flex items-center justify-between"><button className="rounded-lg px-3 py-2 text-sm hover:bg-jcf-bg-cream">‹</button><h2 className="font-bold">May 2024</h2><button className="rounded-lg px-3 py-2 text-sm hover:bg-jcf-bg-cream">›</button></div><div className="grid grid-cols-7 border-l border-t border-jcf-border-light text-center text-xs dark:border-slate-700">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => <div className="border-b border-r border-jcf-border-light py-2 font-bold text-jcf-text-secondary dark:border-slate-700">{day}</div>)}{Array.from({ length: 35 }, (_, index) => { const day = index - 2; const task = day === 20 ? tasks[0] : day === 22 ? tasks[2] : day === 28 ? tasks[1] : undefined; return <div className={classNames('min-h-20 border-b border-r border-jcf-border-light p-2 text-left dark:border-slate-700', day === 20 && 'bg-jcf-soft-green/15')}><span className={classNames('text-xs', day < 1 || day > 31 ? 'text-slate-300' : 'font-medium')}>{day < 1 ? 28 + day : day > 31 ? day - 31 : day}</span>{task && <div className="mt-2 rounded bg-jcf-primary-green px-1.5 py-1 text-[9px] font-medium text-white">{task.title.slice(0, 18)}…</div>}</div>; })}</div></div><div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">This week</h2><div className="mt-5 space-y-5">{tasks.slice(0, 4).map(task => <div className="border-l-2 border-jcf-secondary-green pl-3"><p className="text-xs font-semibold">{task.due} · {task.project}</p><p className="mt-1 text-xs text-jcf-text-secondary">{task.title}</p></div>)}</div></div></div></>; }
+        <MetricCard
+          title="Pending Tasks"
+          value={String(stats.pending)}
+          change="Live"
+          icon={Clock3}
+          tone="bg-amber-50 text-amber-600"
+        />
 
-function DataTable({ title, subtitle, columns, rows, search, setSearch }: { title: string; subtitle: string; columns: string[]; rows: string[][]; search: string; setSearch: (value: string) => void }) { const results = rows.filter(row => row.join(' ').toLowerCase().includes(search.toLowerCase())); return <><PageTitle title={title} subtitle={subtitle} /><div className="rounded-xl bg-white shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><div className="flex items-center justify-between gap-4 border-b border-jcf-border-light p-4 dark:border-slate-700"><div className="flex flex-1 items-center gap-2 rounded-lg border border-jcf-border-light px-3 py-2 dark:border-slate-700"><Search className="h-4 w-4 text-jcf-text-secondary" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${title.toLowerCase()}...`} className="w-full bg-transparent text-sm outline-none" /></div><button className="flex items-center gap-2 rounded-lg border border-jcf-border-light px-3 py-2 text-xs font-semibold"><Filter className="h-4 w-4" />Filter</button></div><div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left"><thead className="bg-jcf-bg-cream text-[11px] uppercase tracking-wide text-jcf-text-secondary dark:bg-slate-700"><tr>{columns.map(column => <th className="px-5 py-3 font-semibold">{column}</th>)}<th className="px-5 py-3" /></tr></thead><tbody>{results.map((row, rowIndex) => <tr key={row[0]} className="border-t border-jcf-border-light text-sm dark:border-slate-700">{row.map((cell, index) => <td className="whitespace-nowrap px-5 py-4"><span className={classNames(index === 0 && 'font-semibold', index === row.length - 1 && 'rounded px-2 py-1 text-xs font-semibold', cell === 'Active' || cell === 'Live' || cell === 'Published' ? 'bg-emerald-50 text-emerald-700' : cell === 'Pending' || cell === 'Planning' || cell === 'Scheduled' ? 'bg-amber-50 text-amber-700' : cell === 'Contacted' || cell === 'In review' || cell === 'Draft' ? 'bg-blue-50 text-blue-700' : '')}>{cell}</span></td>)}<td className="px-5 py-4"><button className="rounded p-1 hover:bg-slate-100"><MoreHorizontal className="h-4 w-4 text-jcf-text-secondary" /></button></td></tr>)}</tbody></table></div><div className="flex items-center justify-between border-t border-jcf-border-light px-5 py-3 text-xs text-jcf-text-secondary"><span>Showing {results.length} of {rows.length} records</span><div className="flex gap-2"><button className="rounded border px-2 py-1">Previous</button><button className="rounded border px-2 py-1">Next</button></div></div></div></>; }
+        <MetricCard
+          title="Completed"
+          value={String(stats.completed)}
+          change="Live"
+          icon={CheckCircle2}
+          tone="bg-emerald-50 text-emerald-600"
+        />
 
-function HorizonView() { return <><PageTitle title="Horizon Series" subtitle="Plan and coordinate the flagship expert conversation series." /><div className="grid gap-5 lg:grid-cols-3"><section className="rounded-xl bg-jcf-primary-green p-6 text-white lg:col-span-2"><p className="text-xs font-semibold tracking-wider text-white/65">NEXT EPISODE · MAY 28</p><h2 className="mt-3 max-w-lg text-2xl font-bold">The Future of Cardiac Care: Precision, Prevention & Partnership</h2><p className="mt-3 max-w-xl text-sm text-white/75">A live conversation with clinical leaders on shaping the next decade of cardiac care.</p><div className="mt-7 flex gap-3"><button className="rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-jcf-primary-green">Open brief</button><button className="rounded-lg border border-white/30 px-3.5 py-2 text-sm font-semibold">View run of show</button></div></section><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><p className="text-xs font-semibold text-jcf-text-secondary">REGISTRATION STATUS</p><p className="mt-3 text-3xl font-bold">782 <span className="text-base font-medium text-jcf-text-secondary">/ 1,200</span></p><div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full w-[65%] rounded-full bg-jcf-secondary-green" /></div><p className="mt-2 text-xs text-emerald-600">65.2% toward target</p></section></div><div className="mt-6 grid gap-5 md:grid-cols-3"><InfoCard icon={UserRound} title="Speakers" value="4 confirmed" note="1 briefing pending" /><InfoCard icon={ClipboardList} title="Production tasks" value="18 of 24" note="75% complete" /><InfoCard icon={AlertTriangle} title="Risks & blockers" value="2 open" note="Review by Tuesday" /></div></>; }
-function InfoCard({ icon: Icon, title, value, note }: { icon: typeof UserRound; title: string; value: string; note: string }) { return <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><Icon className="h-5 w-5 text-jcf-secondary-green" /><p className="mt-5 text-xs font-semibold text-jcf-text-secondary">{title}</p><p className="mt-1 text-xl font-bold">{value}</p><p className="mt-1 text-xs text-jcf-text-secondary">{note}</p></div>; }
+        <MetricCard
+          title="Overdue Tasks"
+          value={String(stats.overdue)}
+          change="Live"
+          icon={AlertTriangle}
+          tone="bg-red-50 text-red-600"
+        />
 
-function Reports() { return <><PageTitle title="Reports & Analytics" subtitle="Turn PR activity into a clear view of team impact." action={false} /><div className="grid gap-6 xl:grid-cols-3"><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 xl:col-span-2 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">Task productivity</h2><p className="mt-1 text-xs text-jcf-text-secondary">Weekly completion rate by team workload</p><MiniBars values={[50, 64, 45, 72, 67, 82, 76, 91]} labels={['W1','W2','W3','W4','W5','W6','W7','W8']} /></section><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">Task status</h2><div className="mx-auto mt-7 flex h-36 w-36 items-center justify-center rounded-full" style={{ background: 'conic-gradient(#4F7150 0 54%, #A7C1A7 54% 76%, #F59E0B 76% 90%, #CBD5E1 90% 100%)' }}><div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white dark:bg-slate-800"><b className="text-xl">48</b><span className="text-[10px] text-jcf-text-secondary">all tasks</span></div></div><div className="mt-6 grid grid-cols-2 gap-2 text-xs"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-jcf-primary-green" />Completed 54%</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-jcf-soft-green" />In progress 22%</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-jcf-warning" />Review 14%</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-slate-300" />To do 10%</span></div></section></div><div className="mt-6 grid gap-6 md:grid-cols-2"><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">Webinar outreach</h2><p className="mt-1 text-xs text-jcf-text-secondary">Invitations and registration conversion</p><div className="mt-7 space-y-5"><ProgressLabel label="Invitations delivered" value="3,787" percent={91} /><ProgressLabel label="Registrations" value="1,220" percent={58} /><ProgressLabel label="Attendance target" value="880" percent={43} /></div></section><section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">Social media performance</h2><p className="mt-1 text-xs text-jcf-text-secondary">May organic performance across channels</p><div className="mt-6 grid grid-cols-3 gap-3"><InfoCard icon={TrendingUp} title="Total reach" value="96.4K" note="+24.5%" /><InfoCard icon={MessageCircle} title="Engagement" value="6.7%" note="+1.2 pts" /><InfoCard icon={Share2} title="Shares" value="1,827" note="+16.8%" /></div></section></div></>; }
-function ProgressLabel({ label, value, percent }: { label: string; value: string; percent: number }) { return <div><div className="flex justify-between text-xs"><span>{label}</span><span className="font-bold">{value}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-jcf-secondary-green" style={{ width: `${percent}%` }} /></div></div>; }
+        <MetricCard
+          title="Upcoming Deadlines"
+          value={String(stats.upcoming)}
+          change="Live"
+          icon={Calendar}
+          tone="bg-blue-50 text-blue-600"
+        />
+      </div>
 
-function Notifications() { const items = [['Urgent', 'Keynote speaker confirmation is overdue', 'Horizon Series · 10 min ago'], ['Mention', 'Jordan Reed mentioned you in “Media kit for Q2 launch”', 'Press Relations · 42 min ago'], ['Update', '32 new doctors were imported to the Cardiologists list', 'Doctors Database · 2 hrs ago'], ['Completed', 'Lena completed “Approve May content calendar”', 'Social Media · Yesterday']]; return <><PageTitle title="Notifications" subtitle="Stay on top of the work that needs your attention." action={false} /><div className="max-w-3xl rounded-xl bg-white shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700">{items.map(([type, title, time], index) => <div className="flex gap-4 border-b border-jcf-border-light p-5 last:border-0 dark:border-slate-700"><div className={classNames('mt-1 h-2.5 w-2.5 rounded-full', index === 0 ? 'bg-red-500' : index === 1 ? 'bg-blue-500' : 'bg-jcf-secondary-green')} /><div className="flex-1"><div className="flex justify-between gap-2"><p className="text-sm font-semibold">{title}</p><button><MoreHorizontal className="h-4 w-4 text-jcf-text-secondary" /></button></div><p className="mt-1 text-xs text-jcf-text-secondary">{time}</p></div></div>)}</div></>; }
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 xl:col-span-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold">
+                Task productivity
+              </h2>
 
-function TeamView() { const people = [['Amelia Martin', 'Project Manager', '14', '32', '94%', 'AM'], ['Jordan Reed', 'PR Intern', '11', '24', '88%', 'JR'], ['Lena Chen', 'Social Media Marketing Intern', '9', '21', '91%', 'LC'], ['Noah Thompson', 'Social Media Manager Intern', '8', '18', '84%', 'NT'], ['Priya Shah', 'PR Intern', '12', '26', '90%', 'PS']]; return <><PageTitle title="Team Members" subtitle="See workload, progress, and productivity across the PR team." /><div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><table className="w-full min-w-[760px] text-left"><thead className="bg-jcf-bg-cream text-[11px] uppercase tracking-wide text-jcf-text-secondary dark:bg-slate-700"><tr>{['Team member','Role','Assigned tasks','Completed','Productivity',''].map(value => <th className="px-5 py-3 font-semibold">{value}</th>)}</tr></thead><tbody>{people.map(([name, job, assigned, completed, productivity, initials]) => <tr className="border-t border-jcf-border-light dark:border-slate-700"><td className="px-5 py-4"><div className="flex items-center gap-3"><Avatar initials={initials} /><span className="font-semibold text-sm">{name}</span></div></td><td className="px-5 py-4"><span className="rounded bg-jcf-soft-green/30 px-2 py-1 text-xs font-medium text-jcf-primary-green">{job}</span></td><td className="px-5 py-4 text-sm">{assigned}</td><td className="px-5 py-4 text-sm">{completed}</td><td className="px-5 py-4"><span className="font-semibold text-sm text-emerald-600">{productivity}</span></td><td className="px-5 py-4"><MoreHorizontal className="h-4 w-4 text-jcf-text-secondary" /></td></tr>)}</tbody></table></div></>; }
+              <p className="mt-1 text-xs text-slate-500">
+                Current workspace tasks
+              </p>
+            </div>
 
-function SettingsView({ role, setRole }: { role: string; setRole: (value: string) => void }) { return <><PageTitle title="Settings" subtitle="Manage your PR workspace preferences and role access." action={false} /><div className="max-w-3xl space-y-6"><section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">Role & access</h2><p className="mt-1 text-sm text-jcf-text-secondary">Preview workspace permissions as a PR team role.</p><label className="mt-5 block text-xs font-semibold text-jcf-text-secondary">ACTIVE ROLE</label><select value={role} onChange={event => setRole(event.target.value)} className="mt-2 w-full rounded-lg border border-jcf-border-light bg-white px-3 py-2.5 text-sm outline-none focus:border-jcf-secondary-green dark:border-slate-700 dark:bg-slate-900"><option>Project Manager</option><option>PR Intern</option><option>Social Media Marketing Intern</option><option>Social Media Manager Intern</option></select><div className="mt-5 rounded-lg bg-jcf-bg-cream p-4 text-xs text-jcf-text-secondary dark:bg-slate-700">{role === 'Project Manager' ? 'Full access to tasks, data records, analytics, team members, and workspace settings.' : 'Contributors can update assigned tasks, collaborate in comments, and view permitted campaign data.'}</div></section><section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-jcf-border-light/70 dark:bg-slate-800 dark:ring-slate-700"><h2 className="font-bold">Notification preferences</h2><div className="mt-5 space-y-4">{['Task assignments and mentions','Due dates and blockers','Webinar registration milestones'].map(item => <div className="flex items-center justify-between"><span className="text-sm">{item}</span><span className="h-6 w-11 rounded-full bg-jcf-primary-green p-1"><span className="block h-4 w-4 translate-x-5 rounded-full bg-white" /></span></div>)}</div></section></div></>; }
+            <button
+              onClick={() =>
+                onNavigate("Reports & Analytics")
+              }
+              className="text-xs font-semibold text-[#4F7150] hover:underline"
+            >
+              View report
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {tasks.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No tasks available.
+              </p>
+            ) : (
+              tasks.slice(0, 5).map((task) => (
+                <div key={task.id}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span>{task.title}</span>
+                    <span>
+                      {task.progress || 0}%
+                    </span>
+                  </div>
+
+                  <div className="h-2 rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-[#4F7150]"
+                      style={{
+                        width: `${task.progress || 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold">
+              Upcoming deadlines
+            </h2>
+
+            <CalendarDays className="h-4 w-4 text-[#4F7150]" />
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {tasks
+              .filter(
+                (task) => task.status !== "Completed"
+              )
+              .slice(0, 4)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="border-l-2 border-[#4F7150] pl-3"
+                >
+                  <p className="text-xs font-semibold">
+                    {task.due_date || "No date"}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    {task.title}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 xl:col-span-2">
+          <h2 className="font-bold">
+            Recent notifications
+          </h2>
+
+          <div className="mt-4 divide-y divide-slate-200">
+            {notifications
+              .slice(0, 5)
+              .map((notification) => (
+                <div
+                  key={notification.id}
+                  className="flex gap-3 py-3"
+                >
+                  <Bell className="mt-1 h-4 w-4 text-[#4F7150]" />
+
+                  <div>
+                    <p className="text-xs font-medium">
+                      {notification.title}
+                    </p>
+
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      {notification.source || "Workspace"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold">
+              Attention needed
+            </h2>
+
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {tasks
+              .filter(
+                (task) =>
+                  task.risk &&
+                  task.status !== "Completed"
+              )
+              .slice(0, 4)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="rounded-lg border-l-4 border-red-400 bg-red-50 p-3"
+                >
+                  <p className="text-xs font-semibold text-red-700">
+                    {task.title}
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-red-600">
+                    Risk: {task.risk}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   KANBAN
+============================================================ */
+
+function Kanban({
+  tasks,
+  setDraggedTask,
+  moveTask,
+  onCreate,
+}: {
+  tasks: Task[];
+  setDraggedTask: (id: number) => void;
+  moveTask: (status: Status) => void;
+  onCreate: () => void;
+}) {
+  const columns: Status[] = [
+    "To Do",
+    "In Progress",
+    "Under Review",
+    "Completed",
+  ];
+
+  return (
+    <>
+      <PageTitle
+        title="Kanban Board"
+        subtitle="Move PR work forward across the team’s delivery workflow."
+        onCreate={onCreate}
+      />
+
+      <div className="grid min-w-[980px] grid-cols-4 gap-4 overflow-x-auto pb-4">
+        {columns.map((column, index) => {
+          const items = tasks.filter(
+            (task) => task.status === column
+          );
+
+          return (
+            <section
+              key={column}
+              onDragOver={(event) =>
+                event.preventDefault()
+              }
+              onDrop={() => moveTask(column)}
+              className="rounded-xl bg-white/70 p-3"
+            >
+              <div className="mb-3 flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={classNames(
+                      "h-2 w-2 rounded-full",
+                      [
+                        "bg-slate-400",
+                        "bg-amber-400",
+                        "bg-blue-500",
+                        "bg-emerald-500",
+                      ][index]
+                    )}
+                  />
+
+                  <h2 className="text-sm font-bold">
+                    {column}
+                  </h2>
+
+                  <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                    {items.length}
+                  </span>
+                </div>
+
+                <MoreHorizontal className="h-4 w-4 text-slate-400" />
+              </div>
+
+              <div className="space-y-3">
+                {items.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onDragStart={() =>
+                      setDraggedTask(task.id)
+                    }
+                  />
+                ))}
+
+                <button
+                  onClick={onCreate}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-slate-500 hover:bg-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add task
+                </button>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   TASKS
+============================================================ */
+
+function TasksView({
+  tasks,
+  query,
+  setQuery,
+  filter,
+  setFilter,
+}: {
+  tasks: Task[];
+  query: string;
+  setQuery: (value: string) => void;
+  filter: "All" | Status;
+  setFilter: (value: "All" | Status) => void;
+}) {
+  return (
+    <>
+      <PageTitle
+        title="My Tasks"
+        subtitle="Your assigned work across PR campaigns and programs."
+      />
+
+      <div className="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <div className="flex flex-wrap gap-3 border-b border-slate-200 p-4">
+          <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+            <Search className="h-4 w-4 text-slate-400" />
+
+            <input
+              value={query}
+              onChange={(e) =>
+                setQuery(e.target.value)
+              }
+              className="w-full bg-transparent text-sm outline-none"
+              placeholder="Search your tasks..."
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {(
+              [
+                "All",
+                "To Do",
+                "In Progress",
+                "Under Review",
+                "Completed",
+              ] as const
+            ).map((item) => (
+              <button
+                key={item}
+                onClick={() => setFilter(item)}
+                className={classNames(
+                  "rounded-lg px-3 py-2 text-xs font-semibold",
+                  filter === item
+                    ? "bg-[#4F7150] text-white"
+                    : "bg-[#F7F5EF] text-slate-500"
+                )}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left">
+            <thead className="bg-[#F7F5EF] text-[11px] uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-5 py-3">Task</th>
+                <th className="px-4 py-3">Priority</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Due date</th>
+                <th className="px-4 py-3">Progress</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {tasks.map((task) => (
+                <tr
+                  key={task.id}
+                  className="border-t border-slate-200 text-sm"
+                >
+                  <td className="px-5 py-4">
+                    <p className="font-semibold">
+                      {task.title}
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {task.project}
+                    </p>
+                  </td>
+
+                  <td className="px-4 py-4">
+                    <span
+                      className={classNames(
+                        "rounded px-2 py-1 text-xs font-semibold",
+                        priorityClass[task.priority]
+                      )}
+                    >
+                      {task.priority}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-4">
+                    <span
+                      className={classNames(
+                        "rounded px-2 py-1 text-xs font-semibold",
+                        statusClass[task.status]
+                      )}
+                    >
+                      {task.status}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-4 text-xs">
+                    {task.due_date || "No date"}
+                  </td>
+
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full bg-[#4F7150]"
+                          style={{
+                            width: `${task.progress || 0}%`,
+                          }}
+                        />
+                      </div>
+
+                      <span className="text-xs text-slate-500">
+                        {task.progress || 0}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   DOCTORS
+============================================================ */
+
+function DoctorsView({
+  doctors,
+  search,
+  setSearch,
+}: {
+  doctors: Doctor[];
+  search: string;
+  setSearch: (value: string) => void;
+}) {
+  const filtered = doctors.filter((doctor) =>
+    `${doctor.name} ${doctor.specialty} ${doctor.organization} ${doctor.location}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <DataTable
+      title="Doctors Database"
+      subtitle="Build and nurture relationships with clinical thought leaders."
+      columns={[
+        "Doctor",
+        "Specialty",
+        "Organization",
+        "Location",
+        "Status",
+      ]}
+      rows={filtered.map((doctor) => [
+        doctor.name,
+        doctor.specialty,
+        doctor.organization,
+        doctor.location,
+        doctor.status,
+      ])}
+      search={search}
+      setSearch={setSearch}
+    />
+  );
+}
+
+/* ============================================================
+   WEBINARS
+============================================================ */
+
+function WebinarsView({
+  webinars,
+  search,
+  setSearch,
+}: {
+  webinars: Webinar[];
+  search: string;
+  setSearch: (value: string) => void;
+}) {
+  const filtered = webinars.filter((webinar) =>
+    `${webinar.title} ${webinar.status}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <DataTable
+      title="Webinar Invitations"
+      subtitle="Monitor outreach and registration performance across upcoming events."
+      columns={[
+        "Webinar",
+        "Date",
+        "Invited",
+        "Registered",
+        "Conversion",
+        "Status",
+      ]}
+      rows={filtered.map((webinar) => [
+        webinar.title,
+        webinar.event_date,
+        String(webinar.invited),
+        String(webinar.registered),
+        webinar.invited
+          ? `${Math.round(
+              (webinar.registered /
+                webinar.invited) *
+                100
+            )}%`
+          : "0%",
+        webinar.status,
+      ])}
+      search={search}
+      setSearch={setSearch}
+    />
+  );
+}
+
+/* ============================================================
+   SOCIAL
+============================================================ */
+
+function SocialView({
+  records,
+  search,
+  setSearch,
+}: {
+  records: SocialRecord[];
+  search: string;
+  setSearch: (value: string) => void;
+}) {
+  const filtered = records.filter((record) =>
+    `${record.post} ${record.channel} ${record.status}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <DataTable
+      title="Social Media Records"
+      subtitle="Track every PR social activation in one place."
+      columns={[
+        "Post",
+        "Channel",
+        "Date",
+        "Reach",
+        "Engagement",
+        "Status",
+      ]}
+      rows={filtered.map((record) => [
+        record.post,
+        record.channel,
+        record.post_date,
+        record.reach,
+        record.engagement,
+        record.status,
+      ])}
+      search={search}
+      setSearch={setSearch}
+    />
+  );
+}
+
+/* ============================================================
+   DATA TABLE
+============================================================ */
+
+function DataTable({
+  title,
+  subtitle,
+  columns,
+  rows,
+  search,
+  setSearch,
+}: {
+  title: string;
+  subtitle: string;
+  columns: string[];
+  rows: string[][];
+  search: string;
+  setSearch: (value: string) => void;
+}) {
+  return (
+    <>
+      <PageTitle title={title} subtitle={subtitle} />
+
+      <div className="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <div className="flex items-center gap-4 border-b border-slate-200 p-4">
+          <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+            <Search className="h-4 w-4 text-slate-400" />
+
+            <input
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder={`Search ${title.toLowerCase()}...`}
+              className="w-full bg-transparent text-sm outline-none"
+            />
+          </div>
+
+          <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold">
+            <Filter className="h-4 w-4" />
+            Filter
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left">
+            <thead className="bg-[#F7F5EF] text-[11px] uppercase tracking-wide text-slate-500">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column}
+                    className="px-5 py-3 font-semibold"
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row, rowIndex) => (
+                <tr
+                  key={`${row[0]}-${rowIndex}`}
+                  className="border-t border-slate-200 text-sm"
+                >
+                  {row.map((cell, index) => (
+                    <td
+                      key={`${cell}-${index}`}
+                      className="whitespace-nowrap px-5 py-4"
+                    >
+                      <span
+                        className={classNames(
+                          index === 0 &&
+                            "font-semibold",
+                          index === row.length - 1 &&
+                            "rounded px-2 py-1 text-xs font-semibold",
+                          cell === "Active" ||
+                            cell === "Live" ||
+                            cell === "Published"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : cell === "Pending" ||
+                              cell === "Planning" ||
+                              cell === "Scheduled"
+                            ? "bg-amber-50 text-amber-700"
+                            : cell === "Contacted" ||
+                              cell === "In review" ||
+                              cell === "Draft"
+                            ? "bg-blue-50 text-blue-700"
+                            : ""
+                        )}
+                      >
+                        {cell}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
+          Showing {rows.length} records
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   CALENDAR
+============================================================ */
+
+function CalendarView({
+  tasks,
+}: {
+  tasks: Task[];
+}) {
+  return (
+    <>
+      <PageTitle
+        title="Calendar"
+        subtitle="A clear view of team deadlines, events, and publishing dates."
+        action={false}
+      />
+
+      <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="font-bold">
+            Task deadlines
+          </h2>
+
+          <CalendarDays className="h-5 w-5 text-[#4F7150]" />
+        </div>
+
+        <div className="space-y-3">
+          {tasks
+            .filter((task) => task.due_date)
+            .sort((a, b) =>
+              String(a.due_date).localeCompare(
+                String(b.due_date)
+              )
+            )
+            .map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between rounded-lg border border-slate-200 p-4"
+              >
+                <div>
+                  <p className="text-sm font-semibold">
+                    {task.title}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    {task.project}
+                  </p>
+                </div>
+
+                <span className="text-xs font-semibold text-[#4F7150]">
+                  {task.due_date}
+                </span>
+              </div>
+            ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   HORIZON
+============================================================ */
+
+function HorizonView({
+  webinars,
+  tasks,
+}: {
+  webinars: Webinar[];
+  tasks: Task[];
+}) {
+  const nextWebinar = webinars[0];
+
+  const horizonTasks = tasks.filter((task) =>
+    task.project
+      ?.toLowerCase()
+      .includes("horizon")
+  );
+
+  return (
+    <>
+      <PageTitle
+        title="Horizon Series"
+        subtitle="Plan and coordinate the flagship expert conversation series."
+      />
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <section className="rounded-xl bg-[#4F7150] p-6 text-white lg:col-span-2">
+          <p className="text-xs font-semibold tracking-wider text-white/65">
+            NEXT WEBINAR
+          </p>
+
+          <h2 className="mt-3 max-w-lg text-2xl font-bold">
+            {nextWebinar?.title ||
+              "No Horizon Series webinar"}
+          </h2>
+
+          <p className="mt-3 text-sm text-white/75">
+            {nextWebinar?.event_date
+              ? `Scheduled for ${nextWebinar.event_date}`
+              : "Create a webinar to see it here."}
+          </p>
+        </section>
+
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <p className="text-xs font-semibold text-slate-500">
+            REGISTRATION STATUS
+          </p>
+
+          <p className="mt-3 text-3xl font-bold">
+            {nextWebinar?.registered || 0}
+
+            <span className="text-base font-medium text-slate-500">
+              {" "}
+              / {nextWebinar?.invited || 0}
+            </span>
+          </p>
+
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-[#4F7150]"
+              style={{
+                width: `${
+                  nextWebinar?.invited
+                    ? Math.min(
+                        100,
+                        (nextWebinar.registered /
+                          nextWebinar.invited) *
+                          100
+                      )
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-6 grid gap-5 md:grid-cols-3">
+        <InfoCard
+          icon={ClipboardList}
+          title="Production tasks"
+          value={String(horizonTasks.length)}
+          note="Horizon tasks"
+        />
+
+        <InfoCard
+          icon={Calendar}
+          title="Upcoming webinars"
+          value={String(webinars.length)}
+          note="From database"
+        />
+
+        <InfoCard
+          icon={AlertTriangle}
+          title="Open risks"
+          value={String(
+            horizonTasks.filter(
+              (task) =>
+                task.risk &&
+                task.status !== "Completed"
+            ).length
+          )}
+          note="Need attention"
+        />
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   REPORTS
+============================================================ */
+
+function Reports({
+  stats,
+  webinars,
+  socialRecords,
+}: {
+  stats: DashboardStats;
+  webinars: Webinar[];
+  socialRecords: SocialRecord[];
+}) {
+  const totalInvited = webinars.reduce(
+    (sum, webinar) => sum + (webinar.invited || 0),
+    0
+  );
+
+  const totalRegistered = webinars.reduce(
+    (sum, webinar) =>
+      sum + (webinar.registered || 0),
+    0
+  );
+
+  const conversion = totalInvited
+    ? Math.round(
+        (totalRegistered / totalInvited) * 100
+      )
+    : 0;
+
+  return (
+    <>
+      <PageTitle
+        title="Reports & Analytics"
+        subtitle="Turn PR activity into a clear view of team impact."
+        action={false}
+      />
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <InfoCard
+          icon={ClipboardList}
+          title="Total Tasks"
+          value={String(stats.total)}
+          note="From database"
+        />
+
+        <InfoCard
+          icon={CheckCircle2}
+          title="Completed"
+          value={String(stats.completed)}
+          note="Completed tasks"
+        />
+
+        <InfoCard
+          icon={TrendingUp}
+          title="Task Completion"
+          value={
+            stats.total
+              ? `${Math.round(
+                  (stats.completed /
+                    stats.total) *
+                    100
+                )}%`
+              : "0%"
+          }
+          note="Current rate"
+        />
+      </div>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <h2 className="font-bold">
+            Webinar outreach
+          </h2>
+
+          <p className="mt-1 text-xs text-slate-500">
+            Invitations and registration conversion
+          </p>
+
+          <div className="mt-7 space-y-5">
+            <ProgressLabel
+              label="Invitations"
+              value={String(totalInvited)}
+              percent={totalInvited ? 100 : 0}
+            />
+
+            <ProgressLabel
+              label="Registrations"
+              value={String(totalRegistered)}
+              percent={conversion}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <h2 className="font-bold">
+            Social media
+          </h2>
+
+          <p className="mt-1 text-xs text-slate-500">
+            Records currently stored
+          </p>
+
+          <div className="mt-6">
+            <InfoCard
+              icon={Share2}
+              title="Social Records"
+              value={String(
+                socialRecords.length
+              )}
+              note="Database records"
+            />
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
+function ProgressLabel({
+  label,
+  value,
+  percent,
+}: {
+  label: string;
+  value: string;
+  percent: number;
+}) {
+  return (
+    <div>
+      <div className="flex justify-between text-xs">
+        <span>{label}</span>
+        <span className="font-bold">
+          {value}
+        </span>
+      </div>
+
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-[#4F7150]"
+          style={{
+            width: `${percent}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({
+  icon: Icon,
+  title,
+  value,
+  note,
+}: {
+  icon: typeof UserRound;
+  title: string;
+  value: string;
+  note: string;
+}) {
+  return (
+    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <Icon className="h-5 w-5 text-[#4F7150]" />
+
+      <p className="mt-5 text-xs font-semibold text-slate-500">
+        {title}
+      </p>
+
+      <p className="mt-1 text-xl font-bold">
+        {value}
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {note}
+      </p>
+    </div>
+  );
+}
+
+/* ============================================================
+   NOTIFICATIONS
+============================================================ */
+
+function NotificationsView({
+  notifications,
+  refresh,
+}: {
+  notifications: Notification[];
+  refresh: () => void;
+}) {
+  const markRead = async (id: number) => {
+    try {
+      await fetch(
+        `${API}/notifications/${id}/read`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      refresh();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <>
+      <PageTitle
+        title="Notifications"
+        subtitle="Stay on top of the work that needs your attention."
+        action={false}
+      />
+
+      <div className="max-w-3xl rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        {notifications.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500">
+            No notifications.
+          </div>
+        ) : (
+          notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className="flex gap-4 border-b border-slate-200 p-5 last:border-0"
+            >
+              <div
+                className={classNames(
+                  "mt-1 h-2.5 w-2.5 rounded-full",
+                  notification.is_read
+                    ? "bg-slate-300"
+                    : "bg-red-500"
+                )}
+              />
+
+              <div className="flex-1">
+                <div className="flex justify-between gap-2">
+                  <p className="text-sm font-semibold">
+                    {notification.title}
+                  </p>
+
+                  {!notification.is_read && (
+                    <button
+                      onClick={() =>
+                        markRead(notification.id)
+                      }
+                      className="text-xs font-semibold text-[#4F7150]"
+                    >
+                      Mark read
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  {notification.source ||
+                    "Workspace"}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   TEAM
+============================================================ */
+
+function TeamView({
+  team,
+}: {
+  team: TeamMember[];
+}) {
+  return (
+    <>
+      <PageTitle
+        title="Team Members"
+        subtitle="See workload, progress, and productivity across the PR team."
+      />
+
+      <div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <table className="w-full min-w-[760px] text-left">
+          <thead className="bg-[#F7F5EF] text-[11px] uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="px-5 py-3">
+                Team member
+              </th>
+
+              <th className="px-5 py-3">
+                Role
+              </th>
+
+              <th className="px-5 py-3">
+                Assigned tasks
+              </th>
+
+              <th className="px-5 py-3">
+                Completed
+              </th>
+
+              <th className="px-5 py-3">
+                Productivity
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {team.map((person) => (
+              <tr
+                key={person.id}
+                className="border-t border-slate-200"
+              >
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      initials={person.initials}
+                    />
+
+                    <span className="text-sm font-semibold">
+                      {person.name}
+                    </span>
+                  </div>
+                </td>
+
+                <td className="px-5 py-4">
+                  <span className="rounded bg-[#E4EEE4] px-2 py-1 text-xs font-medium text-[#4F7150]">
+                    {person.role}
+                  </span>
+                </td>
+
+                <td className="px-5 py-4 text-sm">
+                  {person.assigned_tasks}
+                </td>
+
+                <td className="px-5 py-4 text-sm">
+                  {person.completed_tasks}
+                </td>
+
+                <td className="px-5 py-4 text-sm font-semibold text-emerald-600">
+                  {person.productivity}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/* ============================================================
+   SETTINGS
+============================================================ */
+
+function SettingsView({
+  role,
+  setRole,
+}: {
+  role: string;
+  setRole: (value: string) => void;
+}) {
+  return (
+    <>
+      <PageTitle
+        title="Settings"
+        subtitle="Manage your PR workspace preferences and role access."
+        action={false}
+      />
+
+      <div className="max-w-3xl">
+        <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <h2 className="font-bold">
+            Role & access
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Select your workspace role.
+          </p>
+
+          <label className="mt-5 block text-xs font-semibold text-slate-500">
+            ACTIVE ROLE
+          </label>
+
+          <select
+            value={role}
+            onChange={(event) =>
+              setRole(event.target.value)
+            }
+            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+          >
+            <option>
+              Project Manager
+            </option>
+
+            <option>PR Intern</option>
+
+            <option>
+              Social Media Marketing Intern
+            </option>
+
+            <option>
+              Social Media Manager Intern
+            </option>
+          </select>
+
+          <div className="mt-5 rounded-lg bg-[#F7F5EF] p-4 text-xs text-slate-500">
+            {role === "Project Manager"
+              ? "Full access to tasks, data records, analytics, team members, and workspace settings."
+              : "Contributors can update assigned tasks, collaborate in comments, and view permitted campaign data."}
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
