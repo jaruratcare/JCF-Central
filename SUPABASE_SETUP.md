@@ -65,9 +65,12 @@ For each test user, insert a row with:
 
 ## 4. Environment Variables
 
-Your `.env` file is already configured with:
+For local development, your `.env` file should contain:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+For Netlify, add all three variables under **Site configuration > Environment variables**. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; do not expose it with a `VITE_` prefix or commit its value.
 
 ## 5. Using Supabase in Your App
 

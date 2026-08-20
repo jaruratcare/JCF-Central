@@ -1,4 +1,4 @@
-import { RequestHandler } from 'express';
+import type { RequestHandler } from 'express';
 import { supabase, supabaseAdmin } from '../supabaseClient';
 import { findInternByEmail } from './carcinome/interns';
 
@@ -48,7 +48,7 @@ export const handleLogin: RequestHandler = async (req, res) => {
       return;
     }
 
-    if (!supabase) {
+    if (!supabase || !supabaseAdmin) {
       res.status(503).json({ error: 'Authentication service not configured' });
       return;
     }
