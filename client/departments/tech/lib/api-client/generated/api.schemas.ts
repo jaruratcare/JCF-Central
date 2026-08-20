@@ -38,6 +38,12 @@ export interface Project {
   description?: string | null;
   /** @nullable */
   deadline?: string | null;
+  /** @nullable */
+  startDate?: string | null;
+  /** @nullable */
+  priority?: string | null;
+  /** @nullable */
+  ownerMemberId?: string | null;
   status: ProjectStatus;
   /** @nullable */
   departmentId?: string | null;
@@ -57,6 +63,9 @@ export interface ProjectInput {
   key: string;
   description?: string;
   deadline?: string;
+  startDate?: string;
+  priority?: string;
+  ownerMemberId?: string;
   /** Home department. Defaults to the creator's own department; only CEO Office callers may set a different one. */
   departmentId?: string;
   /** Extra departments that can view this project. CEO Office only. */
@@ -77,6 +86,9 @@ export interface ProjectUpdate {
   description?: string;
   /** @nullable */
   deadline?: string | null;
+  startDate?: string | null;
+  priority?: string | null;
+  ownerMemberId?: string | null;
   status?: ProjectUpdateStatus;
 }
 

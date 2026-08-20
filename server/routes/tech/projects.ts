@@ -17,6 +17,10 @@ const router: IRouter = Router();
 
 const RANK: Record<"manage" | "editor" | "viewer", number> = { viewer: 1, editor: 2, manage: 3 };
 
+function hasInvalidProjectDates(startDate?: unknown, deadline?: unknown) {
+  return typeof startDate === "string" && typeof deadline === "string" && Boolean(startDate) && Boolean(deadline) && deadline < startDate;
+}
+
 router.get("/projects", async (req, res): Promise<void> => {
   const user = req.user!;
   const rows = await sbSelect("projects", { order: "created_at.asc" });
@@ -85,6 +89,11 @@ router.post("/projects", async (req, res): Promise<void> => {
   }
   const departmentId = ceo ? (requestedDeptId ?? user.deptId ?? null) : user.deptId;
 
+  if (hasInvalidProjectDates(rest.startDate, rest.deadline)) {
+    res.status(400).json({ error: "Project deadline must be on or after the start date" });
+    return;
+  }
+
   const row = await sbInsert(
     "projects",
     toSnake({ ...rest, departmentId } as Record<string, unknown>),
@@ -139,6 +148,12 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
   const { status, ...updateFields } = parsed.data;
   const normalizedStatus = normalizeProjectStatus(status);
   const payload = normalizedStatus ? { ...updateFields, status: normalizedStatus } : updateFields;
+  const nextStartDate = updateFields.startDate ?? existingRows[0].start_date;
+  const nextDeadline = updateFields.deadline ?? existingRows[0].deadline;
+  if (hasInvalidProjectDates(nextStartDate, nextDeadline)) {
+    res.status(400).json({ error: "Project deadline must be on or after the start date" });
+    return;
+  }
   const row = await sbUpdate("projects", { id: `eq.${params.data.id}` }, toSnake(payload as Record<string, unknown>));
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
   res.json(toCamel(row));

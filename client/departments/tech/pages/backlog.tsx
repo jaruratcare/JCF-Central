@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ItemTypeIcon, getTypeColor, getPriorityColor, resolveAssigneeName } from "@/departments/tech/components/item-utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getListSprintsQueryKey } from "@/departments/tech/lib/api-client";
+import { useToast } from "@/hooks/use-toast";
 
 const PRIORITY_DOT: Record<string, string> = {
   critical: "bg-red-600",
@@ -43,6 +44,7 @@ export default function Backlog() {
   const { projectId: projectIdStr } = useParams<{ projectId: string }>();
   const projectId = parseInt(projectIdStr!);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: members } = useListProjectMembers(projectId, {
     query: { enabled: !!projectId, queryKey: getListProjectMembersQueryKey(projectId) },
@@ -96,11 +98,14 @@ export default function Backlog() {
     updateItem.mutate(
       { id: itemId, data: { sprintId: newSprintId } as any },
       {
-        onError: () => {
+        onError: (error: any) => {
           queryClient.invalidateQueries({ queryKey: getListProjectItemsQueryKey(projectId) });
+          toast({ title: "Move failed", description: error?.message ?? "The item could not be moved.", variant: "destructive" });
         },
         onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListProjectItemsQueryKey(projectId) });
           queryClient.invalidateQueries({ queryKey: getGetBacklogQueryKey(projectId) });
+          toast({ title: "Item moved", description: newSprintId === null ? "Moved to backlog." : "Moved to sprint." });
         },
       }
     );

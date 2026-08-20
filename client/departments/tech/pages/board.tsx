@@ -32,6 +32,7 @@ import { CompleteSprintDialog, type Disposition, type IncompleteItem } from "@/d
 import { Plus, CheckCircle, Milestone, User, ListTree } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { useOrg } from "@/departments/tech/hooks/use-org";
+import { useToast } from "@/hooks/use-toast";
 
 const COLUMNS: { id: WorkItemStatus; label: string; accent: string; headerBg: string }[] = [
   { id: "todo",        label: "To Do",       accent: "border-t-slate-400",  headerBg: "bg-slate-50 dark:bg-slate-900/30" },
@@ -58,6 +59,7 @@ export default function Board() {
   const [myTasksOnly, setMyTasksOnly] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(true);
   const { currentUser } = useOrg();
+  const { toast } = useToast();
 
   const { data: summary, isLoading: loadingSummary } = useGetProjectSummary(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectSummaryQueryKey(projectId) },
@@ -100,10 +102,15 @@ export default function Board() {
     updateItem.mutate(
       { id: itemId, data: { status: newStatus } },
       {
-        onError: () =>
-          queryClient.invalidateQueries({ queryKey: getListProjectItemsQueryKey(projectId) }),
-        onSuccess: () =>
-          queryClient.invalidateQueries({ queryKey: getGetProjectSummaryQueryKey(projectId) }),
+        onError: (error: any) => {
+          queryClient.invalidateQueries({ queryKey: getListProjectItemsQueryKey(projectId) });
+          toast({ title: "Move failed", description: error?.message ?? "The item could not be moved.", variant: "destructive" });
+        },
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListProjectItemsQueryKey(projectId) });
+          queryClient.invalidateQueries({ queryKey: getGetProjectSummaryQueryKey(projectId) });
+          toast({ title: "Item moved", description: `Moved to ${COLUMNS.find((column) => column.id === newStatus)?.label ?? newStatus}.` });
+        },
       }
     );
   };

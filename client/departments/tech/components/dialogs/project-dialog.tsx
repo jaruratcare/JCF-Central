@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useCreateProject, useUpdateProject, getListProjectsQueryKey, getGetProjectQueryKey } from "@/departments/tech/lib/api-client";
+import { useCreateProject, useUpdateProject, getListProjectsQueryKey, getGetProjectQueryKey, useListUsers } from "@/departments/tech/lib/api-client";
 import type { ProjectInput } from "@/departments/tech/lib/api-client/generated/api.schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -19,8 +19,15 @@ const projectSchema = z.object({
   key: z.string().min(1, "Key is required").max(10, "Key must be 10 characters or less").toUpperCase(),
   description: z.string().optional(),
   deadline: z.string().optional(),
+  startDate: z.string().optional(),
+  priority: z.enum(["critical", "high", "medium", "low"]).optional(),
+  ownerMemberId: z.string().optional(),
   departmentId: z.string().optional(),
   visibleDepartmentIds: z.array(z.string()).optional(),
+}).superRefine((data, context) => {
+  if (data.startDate && data.deadline && data.deadline < data.startDate) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["deadline"], message: "Deadline must be on or after the start date" });
+  }
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -28,7 +35,7 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  project?: { id: number; name: string; key: string; description?: string | null; deadline?: string | null };
+  project?: { id: number; name: string; key: string; description?: string | null; deadline?: string | null; startDate?: string | null; priority?: string | null; ownerMemberId?: string | null };
 }
 
 export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProps) {
@@ -36,6 +43,7 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const { isCeoOffice, departments, currentUser } = useOrg();
+  const { data: users } = useListUsers();
   const { toast } = useToast();
 
   const isEditing = !!project;
@@ -47,6 +55,9 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
       key: "",
       description: "",
       deadline: "",
+      startDate: "",
+      priority: "medium",
+      ownerMemberId: "",
       departmentId: "",
       visibleDepartmentIds: [],
     },
@@ -60,6 +71,9 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
           key: project.key,
           description: project.description || "",
           deadline: project.deadline ? project.deadline.slice(0, 10) : "",
+          startDate: project.startDate ? project.startDate.slice(0, 10) : "",
+          priority: (project.priority as ProjectFormValues["priority"]) || "medium",
+          ownerMemberId: project.ownerMemberId || "",
           departmentId: "",
           visibleDepartmentIds: [],
         });
@@ -69,6 +83,9 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
           key: "",
           description: "",
           deadline: "",
+          startDate: "",
+          priority: "medium",
+          ownerMemberId: "",
           departmentId: currentUser?.deptId ?? "",
           visibleDepartmentIds: [],
         });
@@ -103,6 +120,9 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
         name: data.name,
         key: data.key,
         deadline: data.deadline || undefined,
+        startDate: data.startDate || undefined,
+        priority: data.priority || undefined,
+        ownerMemberId: data.ownerMemberId || undefined,
         description: data.description || undefined,
         ...(isCeoOffice ? { departmentId: data.departmentId, visibleDepartmentIds: data.visibleDepartmentIds } : {}),
       };
@@ -189,6 +209,19 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
                 </FormItem>
               )}
             />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField control={form.control} name="startDate" render={({ field }) => (
+                <FormItem><FormLabel>Start date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="priority" render={({ field }) => (
+                <FormItem><FormLabel>Priority</FormLabel><FormControl><select {...field} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></FormControl><FormMessage /></FormItem>
+              )} />
+            </div>
+
+            <FormField control={form.control} name="ownerMemberId" render={({ field }) => (
+              <FormItem><FormLabel>Project owner</FormLabel><FormControl><select {...field} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"><option value="">Select an owner</option>{(users ?? []).map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></FormControl><FormMessage /></FormItem>
+            )} />
 
             {!isEditing && isCeoOffice && (
               <>

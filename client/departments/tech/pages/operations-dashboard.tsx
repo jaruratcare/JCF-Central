@@ -1,102 +1,117 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, BellRing, CalendarDays, CircleDollarSign, Clock3, Heart, Megaphone, MessageSquare, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { BellRing, CalendarDays, CheckCircle2, CircleDot, Clock3, Megaphone, Pencil, Plus, Search, ShieldAlert, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useListProjects, useListUsers } from "@/departments/tech/lib/api-client";
+import { announcementsKey, useCreateAnnouncement, useDeleteAnnouncement, useListAnnouncements, useUpdateAnnouncement, type Announcement } from "@/departments/tech/lib/announcements";
+import { useOrg } from "@/departments/tech/hooks/use-org";
+import { useToast } from "@/hooks/use-toast";
 
-type MemberStatus = "Active" | "Probation" | "Leave";
-type ProjectStatus = "Active" | "On hold";
-type Priority = "Critical" | "High" | "Medium" | "Low";
+type Priority = "critical" | "high" | "medium" | "low";
+type Notice = Announcement & { author: string; date: string };
 
-// Temporary display data. Replace these arrays with the Supabase-backed query results.
-const members = [
-  { name: "Riya Sharma", role: "Pod Lead", team: "Platform", status: "Active" as MemberStatus, email: "riya@jaruratcare.org", start: "2026-01-15", end: "2026-07-31", leaveDays: 3 },
-  { name: "Rahul Jain", role: "Project Manager", team: "Core", status: "Probation" as MemberStatus, email: "rahul@jaruratcare.org", start: "2026-04-01", end: "2026-08-01", leaveDays: 1 },
-  { name: "Sanya Patel", role: "Frontend Engineer", team: "Infrastructure", status: "Leave" as MemberStatus, email: "sanya@jaruratcare.org", start: "2026-02-01", end: "2026-08-01", leaveDays: 8, leaveFrom: "2026-07-25", leaveTo: "2026-08-01" },
-  { name: "Nikhil Verma", role: "Backend Engineer", team: "Platform", status: "Active" as MemberStatus, email: "nikhil@jaruratcare.org", start: "2026-03-10", end: "2026-09-10", leaveDays: 5 },
-  { name: "Aditi Rao", role: "HR Partner", team: "People", status: "Active" as MemberStatus, email: "aditi@jaruratcare.org", start: "2025-11-01", end: "2026-11-01", leaveDays: 2 },
+const seededProjects = [
+  { id: 1, name: "Central dashboard", key: "JCF", status: "active", priority: "critical" as Priority, startDate: "2026-07-10", deadline: "2026-08-27", ownerMemberId: "riya" },
+  { id: 2, name: "Intern onboarding automation", key: "IOA", status: "active", priority: "high" as Priority, startDate: "2026-07-01", deadline: "2026-08-31", ownerMemberId: "rahul" },
+  { id: 3, name: "Infrastructure stabilisation", key: "INF", status: "hold", priority: "medium" as Priority, startDate: "2026-06-01", deadline: "2026-09-15", ownerMemberId: "nikhil" },
+  { id: 4, name: "Access audit", key: "AUD", status: "signed_off", priority: "low" as Priority, startDate: "2026-05-04", deadline: "2026-07-18", ownerMemberId: "sanya" },
 ];
 
-const projects = [
-  { name: "Central dashboard", team: "Platform", status: "Active" as ProjectStatus, priority: "Critical" as Priority, start: "2026-07-10", deadline: "2026-08-15", members: ["Riya Sharma", "Nikhil Verma"], allocated: 240000, spent: 152000 },
-  { name: "Intern onboarding automation", team: "Core", status: "Active" as ProjectStatus, priority: "High" as Priority, start: "2026-07-01", deadline: "2026-07-31", members: ["Rahul Jain", "Aditi Rao"], allocated: 100000, spent: 67000 },
-  { name: "Infrastructure stabilization", team: "Infrastructure", status: "On hold" as ProjectStatus, priority: "Medium" as Priority, start: "2026-06-01", deadline: "2026-09-01", members: ["Sanya Patel", "Nikhil Verma"], allocated: 180000, spent: 91000 },
+const seededMembers = [
+  { id: "riya", name: "Riya Sharma", role: "Pod Lead", status: "active", start: "2026-01-15", end: "2026-07-31", leaveDays: 3 },
+  { id: "rahul", name: "Rahul Jain", role: "Project Manager", status: "active", start: "2026-04-01", end: "2026-10-01", leaveDays: 1 },
+  { id: "sanya", name: "Sanya Patel", role: "Frontend Engineer", status: "on_leave", start: "2026-02-01", end: "2026-08-01", leaveDays: 8, leaveFrom: "2026-08-18", leaveTo: "2026-08-22" },
+  { id: "nikhil", name: "Nikhil Verma", role: "Backend Engineer", status: "active", start: "2026-03-10", end: "2026-09-10", leaveDays: 5 },
 ];
 
-const blockers = [
-  { id: "BLK-01", project: "Central dashboard", team: "Platform", severity: "Critical", text: "Supabase row-level security policy is preventing cross-team project summaries from loading.", raisedAt: "2026-07-27T08:30:00", author: "Riya Sharma", authorRole: "Pod Lead", comment: "Escalated to backend; dashboard release is blocked until the policy is updated." },
-  { id: "BLK-02", project: "Infrastructure stabilization", team: "Infrastructure", severity: "High", text: "Database patch is waiting for production change-window approval.", raisedAt: "2026-07-28T04:15:00", author: "Rahul Jain", authorRole: "Project Manager", comment: "Approval request sent to the ops reviewer." },
+const seededNotices: Notice[] = [
+  { id: "seed-release", title: "Release readiness review", body: "Bring open blockers and acceptance evidence to Thursday's Pod review.", author: "Riya Sharma", date: "Today", createdAt: "2026-08-20" },
+  { id: "seed-internship", title: "Internship check-in window", body: "Conversion feedback is due for members whose internship ends this month.", author: "Riya Sharma", date: "Yesterday", createdAt: "2026-08-19" },
 ];
 
-const announcements = [
-  { title: "Probation review window", text: "Submit conversion feedback for interns whose review dates fall before 1 August.", author: "Aditi Rao", role: "HR", date: "Today, 10:00 AM" },
-  { title: "Dashboard release freeze", text: "Feature freeze is scheduled for 12 August. Flag scope risks in the blocker log.", author: "Riya Sharma", role: "Pod Lead", date: "Yesterday" },
-];
-
-const milestones = [
-  { date: "31 Jul", title: "Intern onboarding automation", detail: "First internal launch" },
-  { date: "12 Aug", title: "Central dashboard", detail: "Feature freeze" },
-  { date: "15 Aug", title: "Central dashboard", detail: "Company launch" },
-  { date: "01 Sep", title: "Infrastructure stabilization", detail: "Production handover" },
-];
-
-const date = (value: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`));
-const money = (value: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
-
-function tagClass(status: MemberStatus | ProjectStatus | Priority) {
-  if (status === "Active") return "bg-emerald-100 text-emerald-800";
-  if (status === "Leave" || status === "On hold") return "bg-amber-100 text-amber-800";
-  if (status === "Probation" || status === "Medium") return "bg-sky-100 text-sky-800";
-  if (status === "Critical") return "bg-red-100 text-red-800";
-  if (status === "High") return "bg-orange-100 text-orange-800";
-  return "bg-slate-100 text-slate-700";
-}
-
-function OpenTimer({ raisedAt }: { raisedAt: string }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-  const milliseconds = Math.max(0, now - new Date(raisedAt).getTime());
-  const hours = Math.floor(milliseconds / 3_600_000);
-  const minutes = Math.floor((milliseconds % 3_600_000) / 60_000);
-  return <>{hours}h {minutes.toString().padStart(2, "0")}m open</>;
-}
+const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value.slice(0, 10)}T00:00:00`)) : "Not set";
+const priorityLabel = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+const priorityClass = (value: string) => ({ critical: "bg-red-100 text-red-800", high: "bg-orange-100 text-orange-800", medium: "bg-sky-100 text-sky-800", low: "bg-slate-100 text-slate-700" })[value] ?? "bg-slate-100 text-slate-700";
+const statusClass = (value: string) => value === "active" ? "bg-emerald-100 text-emerald-800" : value === "on_leave" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700";
 
 export default function OperationsDashboard() {
+  const { data: apiProjects } = useListProjects();
+  const { data: apiUsers } = useListUsers();
+  const { data: apiNotices } = useListAnnouncements();
+  const createAnnouncement = useCreateAnnouncement();
+  const updateAnnouncement = useUpdateAnnouncement();
+  const deleteAnnouncement = useDeleteAnnouncement();
+  const { isMember, isCeoOffice } = useOrg();
+  const { toast } = useToast();
   const [tab, setTab] = useState("overview");
-  const activeMembers = members.filter((member) => member.status === "Active").length;
-  const activeProjects = projects.filter((project) => project.status === "Active").length;
-  const totalBudget = projects.reduce((total, project) => total + project.allocated, 0);
-  const totalSpend = projects.reduce((total, project) => total + project.spent, 0);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
+  const [noticeTitle, setNoticeTitle] = useState("");
+  const [noticeBody, setNoticeBody] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
+  const queryClient = useQueryClient();
+  const canManageNotices = isCeoOffice || isMember === false;
+  const notices = apiNotices === undefined ? seededNotices : apiNotices.map((notice) => ({ ...notice, author: "Tech Pod Lead", date: formatDate(notice.createdAt) }));
+
+  const projects = (apiProjects?.length ? apiProjects : seededProjects).map((project) => ({ ...project, status: String(project.status), priority: (project.priority ?? "medium") as Priority }));
+  const members = apiUsers?.length ? apiUsers.map((user) => ({ ...user, role: "Tech member", status: user.status, start: "2026-01-01", end: "2026-12-31", leaveDays: 0 })) : seededMembers;
+  const activeMembers = members.filter((member) => member.status === "active").length;
+  const activeProjects = projects.filter((project) => project.status === "active").length;
+  const completedProjects = projects.filter((project) => project.status === "signed_off").length;
+  const dueSoon = projects.filter((project) => project.deadline && new Date(project.deadline).getTime() < Date.now() + 14 * 86400000 && project.status !== "signed_off").length;
+  const priorityCounts = useMemo(() => ["critical", "high", "medium", "low"].map((priority) => ({ priority, count: projects.filter((project) => project.priority === priority).length })), [projects]);
+  const filteredMembers = members.filter((member) => `${member.name} ${member.role}`.toLowerCase().includes(memberSearch.toLowerCase().trim()));
+
+  const addNotice = () => {
+    if (!noticeTitle.trim() || !noticeBody.trim()) return;
+    const data = { title: noticeTitle.trim(), body: noticeBody.trim() };
+    const mutationOptions = {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: announcementsKey });
+        toast({ title: editingNotice ? "Notice updated" : "Notice published", description: "The Tech department notice board is up to date." });
+        setEditingNotice(null); setNoticeTitle(""); setNoticeBody(""); setNoticeOpen(false);
+      },
+      onError: (error: any) => toast({ title: editingNotice ? "Notice update failed" : "Notice publication failed", description: error?.message ?? "Please try again.", variant: "destructive" }),
+    };
+    if (editingNotice?.id) updateAnnouncement.mutate({ id: editingNotice.id, data }, mutationOptions);
+    else createAnnouncement.mutate(data, mutationOptions);
+  };
+
+  const openNoticeEditor = (notice?: Notice) => {
+    setEditingNotice(notice ?? null);
+    setNoticeTitle(notice?.title ?? "");
+    setNoticeBody(notice?.body ?? "");
+    setNoticeOpen(true);
+  };
 
   return <div className="mx-auto max-w-7xl space-y-6">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div><p className="text-sm font-medium text-primary">Tech Department</p><h1 className="text-3xl font-bold tracking-tight">Operations dashboard</h1><p className="mt-1 text-sm text-muted-foreground">People, delivery health, blockers, and programme milestones in one view.</p></div>
-      <Button variant="outline" className="gap-2" onClick={() => setTab("updates")}><Megaphone className="h-4 w-4" />Announcements</Button>
+    <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Tech / department pulse</p><h1 className="mt-2 text-3xl font-bold tracking-tight">Delivery control room</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">A live read on project health, member availability, and the dates that need attention.</p></div>
+      {canManageNotices && <Button onClick={() => openNoticeEditor()} className="gap-2"><Plus className="h-4 w-4" />Add notice</Button>}
+    </header>
+
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[{ label: "Active members", value: activeMembers, detail: "Available now", icon: Users, color: "text-emerald-600" }, { label: "On leave", value: members.filter((member) => member.status === "on_leave").length, detail: "Track return dates", icon: Clock3, color: "text-amber-600" }, { label: "Projects delivered", value: completedProjects, detail: `${activeProjects} currently in flight`, icon: CheckCircle2, color: "text-sky-600" }, { label: "Deadlines in 14 days", value: dueSoon, detail: "Prioritise owner follow-up", icon: CalendarDays, color: "text-amber-600" }, { label: "Open attention", value: 2, detail: "1 critical blocker · 1 review", icon: ShieldAlert, color: "text-red-600" }].map(({ label, value, detail, icon: Icon, color }) => <Card key={label} className="xl:col-span-1"><CardContent className="p-5"><div className="flex items-start justify-between"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-bold">{value}</p></div><Icon className={`h-5 w-5 ${color}`} /></div><p className="mt-2 text-xs text-muted-foreground">{detail}</p></CardContent></Card>)}
     </div>
 
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {[{ label: "Active members", value: activeMembers, detail: "1 on probation", icon: Users }, { label: "Active projects", value: activeProjects, detail: "1 project on hold", icon: CalendarDays }, { label: "Critical blockers", value: 1, detail: "2 blockers open", icon: AlertTriangle }, { label: "Weekly happiness", value: "4.3/5", detail: "This week's vibe check", icon: Heart }].map(({ label, value, detail, icon: Icon }) => <Card key={label}><CardContent className="p-5"><div className="flex justify-between"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-bold">{value}</p></div><Icon className="h-5 w-5 text-primary" /></div><p className="mt-2 text-xs text-muted-foreground">{detail}</p></CardContent></Card>)}
-    </div>
+    <Tabs value={tab} onValueChange={setTab}><div className="overflow-x-auto pb-1"><TabsList className="h-auto min-w-max gap-1 p-1"><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="people">People & leave</TabsTrigger><TabsTrigger value="projects">Projects & dates</TabsTrigger><TabsTrigger value="calendar">Calendar</TabsTrigger><TabsTrigger value="notices">Notice board</TabsTrigger></TabsList></div>
+      <TabsContent value="overview" className="mt-6 space-y-6"><div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]"><Card><CardHeader><CardTitle>Delivery trend</CardTitle><CardDescription>Project completion across the current planning window.</CardDescription></CardHeader><CardContent><div className="flex h-48 items-end gap-3 border-b pt-8">{[{ month: "May", total: 1, done: 1 }, { month: "Jun", total: 2, done: 1 }, { month: "Jul", total: 3, done: 1 }, { month: "Aug", total: projects.length, done: completedProjects }].map((item) => <div className="flex flex-1 flex-col items-center gap-2" key={item.month}><div className="flex h-32 w-full max-w-16 items-end gap-1"><div className="w-1/2 rounded-t bg-slate-200" style={{ height: `${Math.max(18, item.total / Math.max(projects.length, 1) * 100)}%` }} /><div className="w-1/2 rounded-t bg-primary" style={{ height: `${Math.max(18, item.done / Math.max(projects.length, 1) * 100)}%` }} /></div><span className="text-xs text-muted-foreground">{item.month}</span></div>)}</div><div className="mt-4 flex gap-5 text-xs text-muted-foreground"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-slate-200" />Planned</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-primary" />Completed</span></div></CardContent></Card><Card><CardHeader><CardTitle>Priority mix</CardTitle><CardDescription>Where delivery risk is concentrated.</CardDescription></CardHeader><CardContent className="space-y-4">{priorityCounts.map(({ priority, count }) => <div key={priority}><div className="mb-1 flex justify-between text-sm"><span>{priorityLabel(priority)}</span><span className="font-semibold">{count}</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${priority === "critical" ? "bg-red-500" : priority === "high" ? "bg-orange-500" : priority === "medium" ? "bg-sky-500" : "bg-slate-400"}`} style={{ width: `${Math.max(count / Math.max(projects.length, 1) * 100, count ? 8 : 0)}%` }} /></div></div>)}</CardContent></Card></div><div className="grid gap-6 lg:grid-cols-2"><Card><CardHeader><CardTitle>Next deadlines</CardTitle><CardDescription>Projects needing a date or owner conversation.</CardDescription></CardHeader><CardContent className="space-y-3">{projects.filter((project) => project.status !== "signed_off").sort((a, b) => String(a.deadline).localeCompare(String(b.deadline))).map((project) => <div className="flex items-center justify-between gap-3 rounded-lg border p-3" key={project.id}><div><p className="font-medium">{project.name}</p><p className="text-xs text-muted-foreground">{formatDate(project.startDate)} to {formatDate(project.deadline)}</p></div><Badge className={priorityClass(project.priority)}>{priorityLabel(project.priority)}</Badge></div>)}</CardContent></Card><Card><CardHeader><CardTitle>Latest notices</CardTitle><CardDescription>Updates from the Tech Pod Lead.</CardDescription></CardHeader><CardContent className="space-y-4">{notices.slice(0, 3).map((notice) => <div key={`${notice.title}-${notice.date}`}><div className="flex items-center gap-2"><Megaphone className="h-4 w-4 text-primary" /><p className="font-medium">{notice.title}</p></div><p className="mt-1 text-sm text-muted-foreground">{notice.body}</p><p className="mt-2 text-xs text-muted-foreground">{notice.author} · {notice.date}</p></div>)}</CardContent></Card></div></TabsContent>
 
-    <Tabs value={tab} onValueChange={setTab}>
-      <div className="overflow-x-auto pb-1"><TabsList className="h-auto min-w-max gap-1 p-1"><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="people">People & leave</TabsTrigger><TabsTrigger value="projects">Projects</TabsTrigger><TabsTrigger value="blockers">Blockers</TabsTrigger><TabsTrigger value="updates">Updates</TabsTrigger><TabsTrigger value="roadmap">Roadmap & budget</TabsTrigger></TabsList></div>
+      <TabsContent value="people" className="mt-6 space-y-6"><Card><CardHeader><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><CardTitle>Member availability</CardTitle><CardDescription>Internship period, current status, leave duration, and expected return.</CardDescription></div><div className="relative w-full sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Search members" className="pl-9" /></div></div></CardHeader><CardContent className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="p-3">Member</th><th className="p-3">Status</th><th className="p-3">Internship period</th><th className="p-3">Leave days</th><th className="p-3">Return to work</th></tr></thead><tbody>{filteredMembers.map((member) => { const leave = member as typeof member & { leaveFrom?: string; leaveTo?: string }; return <tr className="border-b last:border-0" key={member.id}><td className="p-3"><p className="font-medium">{member.name}</p><p className="text-xs text-muted-foreground">{member.role}</p></td><td className="p-3"><Badge className={statusClass(member.status)}>{member.status === "on_leave" ? "On leave" : "Active"}</Badge></td><td className="p-3">{formatDate(member.start)} to {formatDate(member.end)}</td><td className="p-3">{member.leaveDays} days{member.status === "on_leave" && <span className="block text-xs text-muted-foreground">Current leave: {formatDate(leave.leaveFrom)} to {formatDate(leave.leaveTo)}</span>}</td><td className="p-3">{member.status === "on_leave" ? formatDate(leave.leaveTo) : "Working"}</td></tr>; })}</tbody></table>{filteredMembers.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No members match your search.</p>}</CardContent></Card><div className="grid gap-4 sm:grid-cols-3">{[{ label: "Active", value: activeMembers, icon: CircleDot }, { label: "On leave", value: members.filter((member) => member.status === "on_leave").length, icon: Clock3 }, { label: "Return this month", value: 1, icon: CalendarDays }].map(({ label, value, icon: Icon }) => <Card key={label}><CardContent className="flex items-center gap-3 p-4"><Icon className="h-5 w-5 text-primary" /><div><p className="text-2xl font-bold">{value}</p><p className="text-xs text-muted-foreground">{label}</p></div></CardContent></Card>)}</div></TabsContent>
 
-      <TabsContent value="overview" className="mt-6 space-y-6"><div className="grid gap-6 lg:grid-cols-3"><Card className="lg:col-span-2"><CardHeader><CardTitle>Delivery at a glance</CardTitle><CardDescription>Active initiatives and their next important dates.</CardDescription></CardHeader><CardContent className="space-y-3">{projects.map((project) => <div className="rounded-lg border p-4" key={project.name}><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold">{project.name}</p><p className="text-sm text-muted-foreground">{project.team} · {date(project.start)} — {date(project.deadline)}</p></div><div className="flex gap-2"><Badge className={tagClass(project.status)}>{project.status}</Badge><Badge className={tagClass(project.priority)}>{project.priority}</Badge></div></div><p className="mt-3 text-sm">Assigned: <span className="text-muted-foreground">{project.members.join(", ")}</span></p></div>)}</CardContent></Card><Card><CardHeader><CardTitle>Conversion reminders</CardTitle><CardDescription>Upcoming probation-to-permanent reviews.</CardDescription></CardHeader><CardContent>{members.filter((member) => member.status === "Probation").map((member) => <div className="rounded-lg bg-amber-50 p-3 text-sm" key={member.email}><p className="flex items-center gap-2 font-medium"><BellRing className="h-4 w-4 text-amber-700" />{member.name}</p><p className="mt-1 text-muted-foreground">Review by {date(member.end)} · notify HR and Pod Lead</p></div>)}</CardContent></Card></div><div className="grid gap-6 lg:grid-cols-2"><Card><CardHeader><CardTitle>Critical attention</CardTitle><CardDescription>Blockers that need an owner response.</CardDescription></CardHeader><CardContent className="space-y-3">{blockers.map((blocker) => <div className="flex justify-between gap-3 rounded-lg border p-3" key={blocker.id}><div><p className="font-medium">{blocker.project}</p><p className="text-sm text-muted-foreground">{blocker.text}</p></div><Badge className={blocker.severity === "Critical" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"}>{blocker.severity}</Badge></div>)}</CardContent></Card><Card><CardHeader><CardTitle>Budget pulse</CardTitle><CardDescription>Portfolio spend against allocated budget.</CardDescription></CardHeader><CardContent><div className="flex items-end justify-between"><div><p className="text-2xl font-bold">{money(totalSpend)}</p><p className="text-sm text-muted-foreground">of {money(totalBudget)} allocated</p></div><CircleDollarSign className="h-7 w-7 text-primary" /></div><Progress className="mt-5" value={(totalSpend / totalBudget) * 100} /><p className="mt-2 text-sm text-muted-foreground">{Math.round((totalSpend / totalBudget) * 100)}% of budget used</p></CardContent></Card></div></TabsContent>
+      <TabsContent value="projects" className="mt-6"><Card><CardHeader><CardTitle>Project register</CardTitle><CardDescription>Start date, deadline, owner, status, and priority. No financial fields.</CardDescription></CardHeader><CardContent className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="p-3">Project</th><th className="p-3">Status</th><th className="p-3">Priority</th><th className="p-3">Start</th><th className="p-3">Deadline</th><th className="p-3">Owner</th></tr></thead><tbody>{projects.map((project) => <tr className="border-b last:border-0" key={project.id}><td className="p-3"><p className="font-medium">{project.name}</p><p className="text-xs text-muted-foreground">{project.key}</p></td><td className="p-3"><Badge variant="outline">{project.status === "signed_off" ? "Completed" : project.status === "hold" ? "On hold" : "Active"}</Badge></td><td className="p-3"><Badge className={priorityClass(project.priority)}>{priorityLabel(project.priority)}</Badge></td><td className="p-3">{formatDate(project.startDate)}</td><td className="p-3">{formatDate(project.deadline)}</td><td className="p-3">{members.find((member) => member.id === project.ownerMemberId)?.name ?? "Unassigned"}</td></tr>)}</tbody></table></CardContent></Card></TabsContent>
 
-      <TabsContent value="people" className="mt-6 space-y-6"><Card><CardHeader><CardTitle>Leadership contacts</CardTitle><CardDescription>Active Pod Lead, Project Manager, and HR contacts.</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{members.filter((member) => ["Pod Lead", "Project Manager", "HR Partner"].includes(member.role)).map((member) => <div className="rounded-lg border p-4" key={member.email}><p className="font-semibold">{member.name}</p><p className="text-sm text-muted-foreground">{member.role} · {member.team}</p><a className="mt-2 block text-sm text-primary hover:underline" href={`mailto:${member.email}`}>{member.email}</a></div>)}</CardContent></Card><Card><CardHeader><CardTitle>Members, duration & leave</CardTitle><CardDescription>Internship dates and total leave days for active members; leave periods for members currently on leave.</CardDescription></CardHeader><CardContent className="overflow-x-auto"><table className="w-full min-w-[950px] text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="p-3">Member</th><th className="p-3">Team</th><th className="p-3">Status</th><th className="p-3">Internship duration</th><th className="p-3">Current leave</th><th className="p-3">Total leave days</th></tr></thead><tbody>{members.map((member) => <tr className="border-b last:border-0" key={member.email}><td className="p-3"><p className="font-medium">{member.name}</p><p className="text-muted-foreground">{member.role}</p></td><td className="p-3">{member.team}</td><td className="p-3"><Badge className={tagClass(member.status)}>{member.status}</Badge></td><td className="p-3">{date(member.start)} — {date(member.end)}</td><td className="p-3">{member.status === "Leave" ? `${date(member.leaveFrom!)} — ${date(member.leaveTo!)}` : "—"}</td><td className="p-3">{member.leaveDays} days</td></tr>)}</tbody></table></CardContent></Card></TabsContent>
+      <TabsContent value="calendar" className="mt-6 space-y-6"><Card><CardHeader><CardTitle>August 2026 deadlines</CardTitle><CardDescription>Deadline markers are grouped by priority so the Pod can sequence attention.</CardDescription></CardHeader><CardContent><div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border text-center text-xs">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <div className="bg-muted p-2 font-semibold text-muted-foreground" key={day}>{day}</div>)}{Array.from({ length: 35 }, (_, index) => { const day = index - 5; const due = projects.find((project) => project.deadline?.slice(8, 10) === String(day).padStart(2, "0") && project.deadline?.slice(5, 7) === "08"); return <div className={`min-h-20 bg-card p-2 text-left ${day > 0 && day <= 31 ? "" : "bg-muted/40"}`} key={index}><span className="text-muted-foreground">{day > 0 && day <= 31 ? day : ""}</span>{due && <div className={`mt-2 rounded p-1 text-[10px] font-medium ${priorityClass(due.priority)}`}>{due.name}</div>}</div>; })}</div></CardContent></Card><Card><CardHeader><CardTitle>Deadline signals</CardTitle></CardHeader><CardContent className="grid gap-3 sm:grid-cols-3">{[{ label: "Critical", detail: "Escalate today", className: "bg-red-100 text-red-800" }, { label: "High", detail: "Owner check-in", className: "bg-orange-100 text-orange-800" }, { label: "Medium / low", detail: "Monitor in stand-up", className: "bg-sky-100 text-sky-800" }].map((item) => <div className="rounded-lg border p-3" key={item.label}><Badge className={item.className}>{item.label}</Badge><p className="mt-2 text-sm text-muted-foreground">{item.detail}</p></div>)}</CardContent></Card></TabsContent>
 
-      <TabsContent value="projects" className="mt-6"><Card><CardHeader><CardTitle>Active and hold projects</CardTitle><CardDescription>Start/deadline dates, assigned members, priority, and spend by project.</CardDescription></CardHeader><CardContent className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="p-3">Project</th><th className="p-3">Status</th><th className="p-3">Priority</th><th className="p-3">Start date</th><th className="p-3">Deadline</th><th className="p-3">Assigned members</th><th className="p-3">Spend</th></tr></thead><tbody>{projects.map((project) => <tr className="border-b last:border-0" key={project.name}><td className="p-3 font-medium">{project.name}<p className="font-normal text-muted-foreground">{project.team}</p></td><td className="p-3"><Badge className={tagClass(project.status)}>{project.status}</Badge></td><td className="p-3"><Badge className={tagClass(project.priority)}>{project.priority}</Badge></td><td className="p-3">{date(project.start)}</td><td className="p-3">{date(project.deadline)}</td><td className="p-3">{project.members.join(", ")}</td><td className="p-3">{money(project.spent)} / {money(project.allocated)}</td></tr>)}</tbody></table></CardContent></Card></TabsContent>
-
-      <TabsContent value="blockers" className="mt-6 space-y-4">{blockers.map((blocker) => <Card className={blocker.severity === "Critical" ? "border-red-200" : undefined} key={blocker.id}><CardHeader><div className="flex flex-col justify-between gap-3 sm:flex-row"><div><div className="flex items-center gap-2"><Badge className={blocker.severity === "Critical" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"}>{blocker.severity}</Badge><span className="text-xs text-muted-foreground">{blocker.id}</span></div><CardTitle className="mt-2 text-lg">{blocker.project}</CardTitle><CardDescription>{blocker.team} team · Raised {new Date(blocker.raisedAt).toLocaleString("en-IN")}</CardDescription></div><div className="flex h-fit items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-800"><Clock3 className="h-4 w-4" /><OpenTimer raisedAt={blocker.raisedAt} /></div></div></CardHeader><CardContent><p className="text-sm">{blocker.text}</p><div className="mt-5 border-t pt-4"><p className="mb-3 text-sm font-semibold">Comments</p><div className="rounded-lg bg-muted/60 p-3 text-sm"><p className="font-medium">{blocker.author} <span className="font-normal text-muted-foreground">· {blocker.authorRole}</span></p><p className="mt-1 text-muted-foreground">{blocker.comment}</p></div></div></CardContent></Card>)}</TabsContent>
-
-      <TabsContent value="updates" className="mt-6"><Card><CardHeader><CardTitle>Announcements</CardTitle><CardDescription>Messages from Pod Leads, PMs, and HR.</CardDescription></CardHeader><CardContent className="space-y-4">{announcements.map((announcement) => <div className="rounded-lg border p-4" key={announcement.title}><div className="flex flex-wrap justify-between gap-2"><div className="flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><p className="font-semibold">{announcement.title}</p></div><span className="text-xs text-muted-foreground">{announcement.date}</span></div><p className="mt-2 text-sm text-muted-foreground">{announcement.text}</p><p className="mt-3 text-xs font-medium">{announcement.author} · {announcement.role}</p></div>)}</CardContent></Card></TabsContent>
-
-      <TabsContent value="roadmap" className="mt-6 space-y-6"><Card><CardHeader><CardTitle>Milestone timeline</CardTitle><CardDescription>Major launches and company checkpoints.</CardDescription></CardHeader><CardContent>{milestones.map((milestone, index) => <div className="relative flex gap-4 pb-7 last:pb-0" key={milestone.title}><div className="flex flex-col items-center"><div className={`h-3 w-3 rounded-full ${index === 0 ? "bg-primary" : "bg-muted-foreground/40"}`} />{index < milestones.length - 1 && <div className="h-full w-px bg-border" />}</div><div className="-mt-1"><p className="text-sm text-muted-foreground">{milestone.date}</p><p className="font-semibold">{milestone.title}</p><p className="text-sm text-muted-foreground">{milestone.detail}</p></div></div>)}</CardContent></Card><Card><CardHeader><CardTitle>Budget & burn rate</CardTitle><CardDescription>Financial spend versus allocated budget per project.</CardDescription></CardHeader><CardContent className="space-y-5">{projects.map((project) => { const used = Math.round((project.spent / project.allocated) * 100); return <div key={project.name}><div className="mb-2 flex flex-wrap justify-between gap-2 text-sm"><span className="font-medium">{project.name}</span><span className="text-muted-foreground">{money(project.spent)} of {money(project.allocated)} · {used}%</span></div><Progress value={used} /></div>; })}</CardContent></Card></TabsContent>
+      <TabsContent value="notices" className="mt-6"><Card><CardHeader><div className="flex items-start justify-between gap-4"><div><CardTitle>Tech notice board</CardTitle><CardDescription>Short, visible updates for the department. Only POD leads can publish or manage notices.</CardDescription></div>{canManageNotices && <Button variant="outline" size="sm" onClick={() => openNoticeEditor()}><Plus className="mr-2 h-4 w-4" />New notice</Button>}</div></CardHeader><CardContent className="space-y-4">{notices.map((notice) => <div className="rounded-lg border p-4" key={notice.id}><div className="flex items-start gap-3"><BellRing className="mt-0.5 h-4 w-4 text-primary" /><div className="min-w-0 flex-1"><div className="flex flex-wrap justify-between gap-2"><div><p className="font-semibold">{notice.title}</p><p className="mt-1 text-sm text-muted-foreground">{notice.body}</p></div><div className="flex items-center gap-1">{canManageNotices && notice.id && !notice.id.startsWith("seed-") && <><Button variant="ghost" size="icon" aria-label={`Edit ${notice.title}`} onClick={() => openNoticeEditor(notice)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={`Delete ${notice.title}`} onClick={() => deleteAnnouncement.mutate(notice.id, { onSuccess: () => { queryClient.setQueryData<Announcement[]>(announcementsKey, (current) => current?.filter((item) => item.id !== notice.id) ?? []); queryClient.invalidateQueries({ queryKey: announcementsKey }); toast({ title: "Notice deleted", description: "The notice was removed from the department board." }); }, onError: (error: any) => toast({ title: "Notice deletion failed", description: error?.message ?? "Please try again.", variant: "destructive" }) })}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}<span className="mr-2 text-xs text-muted-foreground">{notice.date}</span></div></div><p className="mt-3 text-xs font-medium">{notice.author} · Tech Pod Lead</p></div></div></div>)}</CardContent></Card></TabsContent>
     </Tabs>
+
+    <Dialog open={noticeOpen} onOpenChange={setNoticeOpen}><DialogContent><DialogHeader><DialogTitle>{editingNotice ? "Edit department notice" : "Add department notice"}</DialogTitle></DialogHeader><div className="space-y-4"><Input placeholder="Notice title" value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} /><Textarea placeholder="What should the Tech team know?" value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} /></div><DialogFooter><Button variant="outline" onClick={() => setNoticeOpen(false)}>Cancel</Button><Button onClick={addNotice} disabled={!canManageNotices || !noticeTitle.trim() || !noticeBody.trim()}>{editingNotice ? "Save changes" : "Publish notice"}</Button></DialogFooter></DialogContent></Dialog>
   </div>;
 }

@@ -47,8 +47,15 @@ function getInitials(name: string) {
 const generalSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  startDate: z.string().optional(),
   deadline: z.string().optional(),
+  priority: z.enum(["critical", "high", "medium", "low"]).optional(),
+  ownerMemberId: z.string().optional(),
   status: z.enum(["planning", "active", "hold", "sign_off"]).optional(),
+}).superRefine((data, context) => {
+  if (data.startDate && data.deadline && data.deadline < data.startDate) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["deadline"], message: "Deadline must be on or after the start date" });
+  }
 });
 type GeneralFormValues = z.infer<typeof generalSchema>;
 
@@ -84,6 +91,7 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
   const addMember = useAddProjectMember();
   const removeMember = useRemoveProjectMember();
   const { isCeoOffice, departments, roles } = useOrg();
+  const { data: projectUsers } = useListUsers({ query: { enabled: open, queryKey: getListUsersQueryKey() } });
 
   const { data: members, isLoading: loadingMembers } = useListProjectMembers(project.id, {
     query: { enabled: open, queryKey: getListProjectMembersQueryKey(project.id) },
@@ -104,7 +112,10 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
     values: {
       name: project.name,
       description: project.description || "",
+      startDate: project.startDate ? project.startDate.slice(0, 10) : "",
       deadline: project.deadline ? project.deadline.slice(0, 10) : "",
+      priority: (project.priority as GeneralFormValues["priority"]) || "medium",
+      ownerMemberId: project.ownerMemberId || "",
       status: (project.status === "signed_off" ? "sign_off" : (project.status as GeneralFormValues["status"])) ?? "planning",
     },
   });
@@ -243,6 +254,19 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
                   />
                   <FormField
                     control={generalForm.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} disabled={isSignedOff || !canManage} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={generalForm.control}
                     name="deadline"
                     render={({ field }) => (
                       <FormItem>
@@ -254,6 +278,42 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
                       </FormItem>
                     )}
                   />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={generalForm.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <FormControl>
+                            <select {...field} disabled={isSignedOff || !canManage} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm disabled:opacity-50">
+                              <option value="critical">Critical</option>
+                              <option value="high">High</option>
+                              <option value="medium">Medium</option>
+                              <option value="low">Low</option>
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={generalForm.control}
+                      name="ownerMemberId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project owner</FormLabel>
+                          <FormControl>
+                            <select {...field} disabled={isSignedOff || !canManage} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm disabled:opacity-50">
+                              <option value="">Unassigned</option>
+                              {(projectUsers ?? []).map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={generalForm.control}
                     name="status"

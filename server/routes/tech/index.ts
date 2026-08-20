@@ -8,6 +8,7 @@ import membersRouter from "./members";
 import departmentsRouter from "./departments";
 import rolesRouter from "./roles";
 import usersRouter from "./users";
+import announcementsRouter from "./announcements";
 import { requireUser, requireTechOrCeo } from "./middlewares/auth";
 
 const router: IRouter = Router();
@@ -18,6 +19,7 @@ router.use(requireTechOrCeo);
 router.use("/api", departmentsRouter);
 router.use("/api", rolesRouter);
 router.use("/api", usersRouter);
+router.use("/api", announcementsRouter);
 router.use("/api", projectsRouter);
 router.use("/api", membersRouter);
 router.use("/api", sprintsRouter);

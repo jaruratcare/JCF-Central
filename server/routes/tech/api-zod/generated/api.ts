@@ -99,6 +99,9 @@ export const ListProjectsResponseItem = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
+  "startDate": zod.string().nullish(),
+  "priority": zod.string().nullish(),
+  "ownerMemberId": zod.string().nullish(),
   "status": zod.enum(['active', 'signed_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
@@ -120,6 +123,9 @@ export const CreateProjectBody = zod.object({
   "key": zod.string().min(1),
   "description": zod.string().optional(),
   "deadline": zod.string().optional(),
+  "startDate": zod.string().optional(),
+  "priority": zod.string().optional(),
+  "ownerMemberId": zod.string().optional(),
   "departmentId": zod.string().optional().describe('Home department. Defaults to the creator\'s own department; only CEO Office callers may set a different one.'),
   "visibleDepartmentIds": zod.array(zod.string()).optional().describe('Extra departments that can view this project. CEO Office only.')
 })
@@ -138,6 +144,9 @@ export const GetProjectResponse = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
+  "startDate": zod.string().nullish(),
+  "priority": zod.string().nullish(),
+  "ownerMemberId": zod.string().nullish(),
   "status": zod.enum(['active', 'signed_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
@@ -160,6 +169,9 @@ export const UpdateProjectBody = zod.object({
   "name": zod.string().min(1).optional(),
   "description": zod.string().optional(),
   "deadline": zod.string().nullish(),
+  "startDate": zod.string().nullish(),
+  "priority": zod.string().nullish(),
+  "ownerMemberId": zod.string().nullish(),
   "status": zod.enum(['planning', 'active', 'hold', 'sign_off', 'signed_off']).optional()
 })
 
@@ -169,6 +181,9 @@ export const UpdateProjectResponse = zod.object({
   "key": zod.string(),
   "description": zod.string().nullish(),
   "deadline": zod.string().nullish(),
+  "startDate": zod.string().nullish(),
+  "priority": zod.string().nullish(),
+  "ownerMemberId": zod.string().nullish(),
   "status": zod.enum(['active', 'signed_off']),
   "departmentId": zod.string().nullish(),
   "accessLevel": zod.union([zod.literal('manage'),zod.literal('editor'),zod.literal('viewer'),zod.literal(null)]).nullish().describe('The requesting user\'s highest access level on this project.'),
