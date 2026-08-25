@@ -56,3 +56,11 @@ export async function getProjectAccess(user: AppUser, projectId: number): Promis
 export function hasAtLeast(level: AccessLevel, min: Exclude<AccessLevel, null>): boolean {
   return level !== null && RANK[level] >= RANK[min];
 }
+
+/** Project ids owned by the user's department (or every project for CEO Office). */
+export async function scopedProjectIds(user: AppUser): Promise<number[]> {
+  const projects = (await isCeoOffice(user))
+    ? await sbSelect("projects", {})
+    : await sbSelect("projects", { department_id: `eq.${user.deptId ?? "null"}` });
+  return projects.map((p) => p.id as number);
+}

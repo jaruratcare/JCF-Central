@@ -9,6 +9,12 @@ import departmentsRouter from "./departments";
 import rolesRouter from "./roles";
 import usersRouter from "./users";
 import announcementsRouter from "./announcements";
+import teamsRouter from "./teams";
+import memberProfilesRouter from "./member-profiles";
+import blockersRouter from "./blockers";
+import blockerCommentsRouter from "./blocker-comments";
+import milestonesRouter from "./milestones";
+import conversionRemindersRouter from "./conversion-reminders";
 import { requireUser, requireTechOrCeo } from "./middlewares/auth";
 
 const router: IRouter = Router();
@@ -25,5 +31,11 @@ router.use("/api", membersRouter);
 router.use("/api", sprintsRouter);
 router.use("/api", itemsRouter);
 router.use("/api", commentsRouter);
+router.use("/api", teamsRouter);
+router.use("/api", memberProfilesRouter);
+router.use("/api", blockersRouter);
+router.use("/api", blockerCommentsRouter);
+router.use("/api", milestonesRouter);
+router.use("/api", conversionRemindersRouter);
 
 export default router;
