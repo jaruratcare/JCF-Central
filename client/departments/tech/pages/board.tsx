@@ -136,6 +136,10 @@ export default function Board() {
       queryClient.invalidateQueries({ queryKey: getListProjectItemsQueryKey(projectId) });
       queryClient.invalidateQueries({ queryKey: getGetBacklogQueryKey(projectId) });
       setCompleteDialogOpen(false);
+      toast({ title: "Sprint completed", description: "Sprint has been successfully completed." });
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+      toast({ title: "Failed to complete sprint", description: msg, variant: "destructive" });
     } finally {
       setCompletePending(false);
     }

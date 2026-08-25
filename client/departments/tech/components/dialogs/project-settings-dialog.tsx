@@ -39,6 +39,7 @@ import {
   type Project,
 } from "@/departments/tech/lib/api-client";
 import { useOrg } from "@/departments/tech/hooks/use-org";
+import { useToast } from "@/hooks/use-toast";
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -92,6 +93,7 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
   const removeMember = useRemoveProjectMember();
   const { isCeoOffice, departments, roles } = useOrg();
   const { data: projectUsers } = useListUsers({ query: { enabled: open, queryKey: getListUsersQueryKey() } });
+  const { toast } = useToast();
 
   const { data: members, isLoading: loadingMembers } = useListProjectMembers(project.id, {
     query: { enabled: open, queryKey: getListProjectMembersQueryKey(project.id) },
@@ -139,12 +141,20 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(project.id) });
+          onOpenChange(false);
+          toast({ title: "Settings saved", description: "Project settings have been successfully updated." });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to update settings", description: msg, variant: "destructive" });
         },
       },
     );
   };
 
   const onAddMember = (data: MemberFormValues) => {
+    const addedUser = availableUsers.find(u => u.id === data.userId);
+    const userName = addedUser ? (addedUser.name as string) : "User";
     addMember.mutate(
       { projectId: project.id, data: data as any },
       {
@@ -154,12 +164,19 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
           // their access level is reflected everywhere immediately.
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           memberForm.reset({ userId: "", roleInProject: "viewer" });
+          toast({ title: "Member added", description: `"${userName}" has been added to the project.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to add member", description: msg, variant: "destructive" });
         },
       },
     );
   };
 
   const onRemoveMember = (memberId: string) => {
+    const memberObj = members?.find(m => m.id === memberId);
+    const memberName = memberObj ? memberObj.name : "Member";
     removeMember.mutate(
       { id: memberId },
       {
@@ -168,6 +185,11 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
           // Invalidate project list so the removed user's access is revoked
           // in every open tab on their next refetch/focus.
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+          toast({ title: "Member removed", description: `"${memberName}" has been removed from the project.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to remove member", description: msg, variant: "destructive" });
         },
       },
     );
@@ -181,6 +203,12 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(project.id) });
           setSignOffConfirmOpen(false);
+          onOpenChange(false);
+          toast({ title: "Project signed off", description: `"${project.name}" has been completed and locked.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to sign off project", description: msg, variant: "destructive" });
         },
       },
     );
@@ -195,6 +223,11 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
           setDeleteConfirmOpen(false);
           onOpenChange(false);
           navigate("/projects");
+          toast({ title: "Project deleted", description: `"${project.name}" has been deleted.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to delete project", description: msg, variant: "destructive" });
         },
       },
     );

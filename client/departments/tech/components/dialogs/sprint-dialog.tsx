@@ -11,6 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { useToast } from "@/hooks/use-toast";
+
 const sprintSchema = z.object({
   name: z.string().min(1, "Name is required"),
   goal: z.string().optional(),
@@ -32,6 +34,7 @@ export function SprintDialog({ open, onOpenChange, projectId, sprint }: SprintDi
   const queryClient = useQueryClient();
   const createSprint = useCreateSprint();
   const updateSprint = useUpdateSprint();
+  const { toast } = useToast();
 
   const isEditing = !!sprint;
 
@@ -85,7 +88,12 @@ export function SprintDialog({ open, onOpenChange, projectId, sprint }: SprintDi
           queryClient.invalidateQueries({ queryKey: getListSprintsQueryKey(projectId) });
           queryClient.invalidateQueries({ queryKey: getGetSprintQueryKey(sprint.id) });
           onOpenChange(false);
-        }
+          toast({ title: "Sprint updated", description: `"${data.name}" has been saved.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to update sprint", description: msg, variant: "destructive" });
+        },
       });
     } else {
       createSprint.mutate({
@@ -95,7 +103,12 @@ export function SprintDialog({ open, onOpenChange, projectId, sprint }: SprintDi
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListSprintsQueryKey(projectId) });
           onOpenChange(false);
-        }
+          toast({ title: "Sprint created", description: `"${data.name}" has been created.` });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Something went wrong";
+          toast({ title: "Failed to create sprint", description: msg, variant: "destructive" });
+        },
       });
     }
   };
