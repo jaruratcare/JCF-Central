@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { customFetch } from "./api-client/custom-fetch";
 
 export interface Milestone {
@@ -21,5 +21,9 @@ export function useListMilestones() {
     queryFn: () => customFetch<Milestone[]>("/api/milestones", { method: "GET" }),
   });
 }
+
+export function useCreateMilestone() { return useMutation({ mutationFn: (data: Partial<Milestone>) => customFetch<Milestone>("/api/milestones", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }) }); }
+export function useUpdateMilestone() { return useMutation({ mutationFn: ({ id, data }: { id: string; data: Partial<Milestone> }) => customFetch<Milestone>(`/api/milestones/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }) }); }
+export function useDeleteMilestone() { return useMutation({ mutationFn: (id: string) => customFetch<void>(`/api/milestones/${id}`, { method: "DELETE" }) }); }
 
 export { milestonesKey };

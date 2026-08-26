@@ -14,6 +14,7 @@ setAuthTokenGetter(async () => {
 });
 
 import OperationsDashboard from "@/departments/tech/pages/operations-dashboard";
+import MyTasks from "@/departments/tech/pages/my-tasks";
 import ProjectsList from "@/departments/tech/pages/projects";
 import ProjectDashboard from "@/departments/tech/pages/project-dashboard";
 import Board from "@/departments/tech/pages/board";
@@ -39,6 +40,7 @@ function TechRouter() {
     <JcfAppLayout departmentName="Tech" secondaryNav={<TechProjectNav />}>
       <Switch>
         <Route path="/" component={OperationsDashboard} />
+        <Route path="/my-tasks" component={MyTasks} />
         <Route path="/projects" component={ProjectsList} />
         <Route path="/projects/:projectId" component={ProjectDashboard} />
         <Route path="/projects/:projectId/board" component={Board} />

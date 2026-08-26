@@ -45,7 +45,7 @@ router.get("/projects/:projectId/members", async (req, res): Promise<void> => {
 async function assertProjectEditable(projectId: number): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const projects = await sbSelect("projects", { id: `eq.${projectId}` });
   if (!projects[0]) return { ok: false, status: 404, error: "Project not found" };
-  if (projects[0].status === "signed_off") {
+  if (projects[0].status === "signed_off" || projects[0].status === "sign_off") {
     return { ok: false, status: 409, error: "Project is signed off and can no longer be edited" };
   }
   return { ok: true };

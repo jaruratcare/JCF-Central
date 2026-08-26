@@ -1,6 +1,6 @@
 export function normalizeProjectStatus(status: string | undefined | null): string | undefined {
   if (!status) return undefined;
-  if (status === 'sign_off') return 'signed_off';
+  if (status === 'signed_off') return 'sign_off';
   return status;
 }
 

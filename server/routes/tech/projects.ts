@@ -140,7 +140,7 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
   const existingRows = await sbSelect("projects", { id: `eq.${params.data.id}` });
   if (!existingRows[0]) { res.status(404).json({ error: "Project not found" }); return; }
   const existingStatus = normalizeProjectStatus(existingRows[0].status as string | undefined);
-  if (existingStatus === "signed_off") {
+  if (existingStatus === "sign_off") {
     res.status(409).json({ error: "Project is signed off and can no longer be edited" });
     return;
   }
@@ -175,7 +175,7 @@ router.post("/projects/:id/sign-off", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const access = await getProjectAccess(req.user!, params.data.id);
   if (!hasAtLeast(access, "manage")) { res.status(403).json({ error: "Manage access required" }); return; }
-  const row = await sbUpdate("projects", { id: `eq.${params.data.id}` }, { status: "signed_off" });
+  const row = await sbUpdate("projects", { id: `eq.${params.data.id}` }, { status: "sign_off" });
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
   res.json(toCamel(row));
 });

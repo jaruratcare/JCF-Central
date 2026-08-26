@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { customFetch } from "./api-client/custom-fetch";
 
 export interface Blocker {
@@ -35,6 +35,10 @@ export function useListBlockers() {
     queryFn: () => customFetch<Blocker[]>("/api/blockers", { method: "GET" }),
   });
 }
+
+export function useCreateBlocker() { return useMutation({ mutationFn: (data: Partial<Blocker>) => customFetch<Blocker>("/api/blockers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }) }); }
+export function useUpdateBlocker() { return useMutation({ mutationFn: ({ id, data }: { id: string; data: Partial<Blocker> }) => customFetch<Blocker>(`/api/blockers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }) }); }
+export function useDeleteBlocker() { return useMutation({ mutationFn: (id: string) => customFetch<void>(`/api/blockers/${id}`, { method: "DELETE" }) }); }
 
 export function useListBlockerComments(blockerId: string | undefined) {
   return useQuery({

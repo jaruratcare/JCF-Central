@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { normalizeProjectStatus, normalizeItemFormPayload } from './normalizers';
 
 describe('normalizeProjectStatus', () => {
-  it('maps legacy sign_off values to signed_off', () => {
-    expect(normalizeProjectStatus('sign_off')).toBe('signed_off');
+  it('maps legacy signed_off values to the database status', () => {
+    expect(normalizeProjectStatus('signed_off')).toBe('sign_off');
   });
 
   it('keeps supported statuses intact', () => {
     expect(normalizeProjectStatus('planning')).toBe('planning');
     expect(normalizeProjectStatus('active')).toBe('active');
     expect(normalizeProjectStatus('hold')).toBe('hold');
-    expect(normalizeProjectStatus('signed_off')).toBe('signed_off');
+    expect(normalizeProjectStatus('signed_off')).toBe('sign_off');
   });
 });
 

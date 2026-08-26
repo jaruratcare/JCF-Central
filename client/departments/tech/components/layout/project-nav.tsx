@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
+  Home,
   KanbanSquare,
   ListTodo,
   Milestone,
@@ -69,7 +70,7 @@ export function TechProjectNav() {
     });
   }, [projects, switcherSearch]);
 
-  const projectsActive = location === "/projects" || location.startsWith("/projects/");
+  const projectsActive = location === "/projects";
 
   const projectNav = [
     { name: "Dashboard", href: `/projects/${projectId}`, icon: LayoutDashboard, exact: true },
@@ -81,19 +82,46 @@ export function TechProjectNav() {
   ];
 
   return (
-    <div className="pt-4 mt-2 border-t border-sidebar-border">
+    <div className="mt-2 space-y-1 pt-1">
+      <Link
+        href="/"
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all",
+          location === "/"
+            ? "border-blue-600 bg-blue-600 text-white shadow-sm font-semibold dark:border-sky-400 dark:bg-sky-500"
+            : "border-transparent text-slate-800 hover:border-sky-300/60 hover:bg-sky-200/70 hover:text-blue-950 dark:text-slate-200 dark:hover:border-sky-500/60 dark:hover:bg-sky-950/70 dark:hover:text-sky-100",
+        )}
+      >
+        <Home className="w-5 h-5 flex-shrink-0" />
+        <span className="text-sm font-medium">Dashboard</span>
+        {location === "/" && <span className="ml-auto h-2 w-2 rounded-full bg-white/90" />}
+      </Link>
       {/* Always-visible entry point into the agile app */}
       <Link
         href="/projects"
         className={cn(
-          "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all",
           projectsActive
-            ? "bg-sidebar-accent text-sidebar-foreground"
-            : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
+            ? "border border-blue-600 bg-blue-600 text-white shadow-sm font-semibold dark:border-sky-400 dark:bg-sky-500"
+            : "border border-transparent text-slate-800 hover:border-sky-300/60 hover:bg-sky-200/70 hover:text-blue-950 dark:text-slate-200 dark:hover:border-sky-500/60 dark:hover:bg-sky-950/70 dark:hover:text-sky-100",
         )}
       >
         <FolderKanban className="w-5 h-5 flex-shrink-0" />
         <span className="text-sm font-medium">Projects</span>
+        {projectsActive && <span className="ml-auto h-2 w-2 rounded-full bg-white/90" />}
+      </Link>
+      <Link
+        href="/my-tasks"
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all",
+          location === "/my-tasks"
+            ? "border-blue-600 bg-blue-600 text-white shadow-sm font-semibold dark:border-sky-400 dark:bg-sky-500"
+            : "border-transparent text-slate-800 hover:border-sky-300/60 hover:bg-sky-200/70 hover:text-blue-950 dark:text-slate-200 dark:hover:border-sky-500/60 dark:hover:bg-sky-950/70 dark:hover:text-sky-100",
+        )}
+      >
+        <ListTodo className="w-5 h-5 flex-shrink-0" />
+        <span className="text-sm font-medium">My Tasks</span>
+        {location === "/my-tasks" && <span className="ml-auto h-2 w-2 rounded-full bg-white/90" />}
       </Link>
 
       {projectId && (
@@ -102,7 +130,7 @@ export function TechProjectNav() {
           <div className="px-4 mb-2 mt-2">
             <Link
               href="/projects"
-              className="flex items-center gap-1.5 text-xs opacity-50 hover:opacity-100 transition-opacity px-2 py-1 rounded hover:bg-sidebar-accent"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-600 opacity-70 transition-opacity hover:bg-sky-200/70 hover:text-blue-950 hover:opacity-100 dark:text-slate-400 dark:hover:bg-sky-950/70 dark:hover:text-sky-100"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               All Projects
@@ -113,9 +141,9 @@ export function TechProjectNav() {
           <div className="px-4 mb-3 flex items-center gap-1.5">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-sidebar-accent/50 hover:bg-sidebar-accent text-sm font-medium transition-colors min-w-0">
+                <button className="flex-1 flex items-center justify-between gap-2 rounded-md border border-sky-300/70 bg-sky-200/60 px-3 py-2 text-sm font-medium transition-colors hover:bg-sky-200 min-w-0 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-500/60 dark:hover:bg-sky-950/70">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-xs font-mono bg-sidebar-primary/20 text-sidebar-primary px-1.5 py-0.5 rounded flex-shrink-0">
+                    <span className="text-xs font-mono rounded bg-blue-600/10 px-1.5 py-0.5 text-blue-800 flex-shrink-0 dark:bg-sky-400/15 dark:text-sky-300">
                       {currentProject?.key ?? "—"}
                     </span>
                     <span className="truncate">{currentProject?.name ?? "Project"}</span>
@@ -193,7 +221,7 @@ export function TechProjectNav() {
           )}
 
           {/* Section label */}
-          <p className="px-4 pb-2 text-[11px] font-semibold uppercase tracking-wider opacity-60">
+          <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-950 dark:text-sky-200">
             Project
           </p>
           <div className="space-y-1">
@@ -209,12 +237,13 @@ export function TechProjectNav() {
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
+                      ? "border border-blue-600 bg-blue-600 text-white shadow-sm font-semibold dark:border-sky-400 dark:bg-sky-500"
+                      : "border border-transparent text-slate-800 hover:border-sky-300/60 hover:bg-sky-200/70 hover:text-blue-950 dark:text-slate-200 dark:hover:border-sky-500/60 dark:hover:bg-sky-950/70 dark:hover:text-sky-100",
                   )}
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
                   <span className="text-sm font-medium">{item.name}</span>
+                    {isActive && <span className="ml-auto h-2 w-2 rounded-full bg-white/90" />}
                 </Link>
               );
             })}
