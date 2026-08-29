@@ -1,0 +1,41 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import projectsRouter from "./projects";
+import sprintsRouter from "./sprints";
+import itemsRouter from "./items";
+import commentsRouter from "./comments";
+import membersRouter from "./members";
+import departmentsRouter from "./departments";
+import rolesRouter from "./roles";
+import usersRouter from "./users";
+import announcementsRouter from "./announcements";
+import teamsRouter from "./teams";
+import memberProfilesRouter from "./member-profiles";
+import blockersRouter from "./blockers";
+import blockerCommentsRouter from "./blocker-comments";
+import milestonesRouter from "./milestones";
+import conversionRemindersRouter from "./conversion-reminders";
+import { requireUser, requireTechOrCeo } from "./middlewares/auth";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(requireUser);
+router.use(requireTechOrCeo);
+router.use("/api", departmentsRouter);
+router.use("/api", rolesRouter);
+router.use("/api", usersRouter);
+router.use("/api", announcementsRouter);
+router.use("/api", projectsRouter);
+router.use("/api", membersRouter);
+router.use("/api", sprintsRouter);
+router.use("/api", itemsRouter);
+router.use("/api", commentsRouter);
+router.use("/api", teamsRouter);
+router.use("/api", memberProfilesRouter);
+router.use("/api", blockersRouter);
+router.use("/api", blockerCommentsRouter);
+router.use("/api", milestonesRouter);
+router.use("/api", conversionRemindersRouter);
+
+export default router;

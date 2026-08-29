@@ -46,13 +46,13 @@ export const DEMO_USERS: Record<string, User & { password: string }> = {
     department: 'pr',
     role: 'member',
   },
-  'carcinoma@jcf.local': {
+  'carcinome@jcf.local': {
     id: '6',
-    email: 'carcinoma@jcf.local',
+    email: 'carcinome@jcf.local',
     password: 'car123',
-    firstName: 'Carcinoma',
+    firstName: 'Carcinome',
     lastName: 'Specialist',
-    department: 'carcinoma',
+    department: 'carcinome',
     role: 'member',
   },
   'medical@jcf.local': {

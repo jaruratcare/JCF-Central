@@ -1,4 +1,4 @@
-import { RequestHandler } from 'express';
+import type { RequestHandler } from 'express';
 import { supabase, supabaseAdmin } from '../supabaseClient';
 
 export const handleChangePassword: RequestHandler = async (req, res) => {

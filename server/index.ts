@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
-import { handleLogin, handleLogout } from "./routes/auth";
+import { handleLogin, handleLogout, handleRequestPasswordReset } from "./routes/auth";
 import { handleChangePassword } from "./routes/password";
 import tasksRouter from "./routes/tasks";
 import doctorsRouter from "./routes/doctors";
@@ -11,6 +11,8 @@ import socialRouter from "./routes/social";
 import notificationsRouter from "./routes/notifications";
 import teamRouter from "./routes/team";
 import dashboardRouter from "./routes/dashboard";
+import techRouter from "./routes/tech/index";
+import carcinomeRouter from "./routes/carcinome/index";
 
 export function createServer() {
   const app = express();
@@ -31,6 +33,7 @@ export function createServer() {
   // Auth proxy routes
   app.post("/api/auth/login", handleLogin);
   app.post("/api/auth/logout", handleLogout);
+  app.post("/api/auth/request-password-reset", handleRequestPasswordReset);
   app.post("/api/auth/change-password", handleChangePassword);
 
   app.use("/api/tasks", tasksRouter);
@@ -40,6 +43,8 @@ export function createServer() {
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/team", teamRouter);
   app.use("/api/dashboard", dashboardRouter);
+  app.use("/api/tech", techRouter);
+  app.use("/api/carcinome", carcinomeRouter);
 
   return app;
 }

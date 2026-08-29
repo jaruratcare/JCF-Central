@@ -1,7 +1,7 @@
 export type Department = 
   | 'ceo-office'
   | 'pr'
-  | 'carcinoma'
+  | 'carcinome'
   | 'hr'
   | 'psy-connect'
   | 'tech'
@@ -13,7 +13,8 @@ export type Role =
   | 'founder_office_member'
   | 'hr_pod_lead'
   | 'department_pod_lead'
-  | 'member';
+  | 'member'
+  | 'carcinome_intern';
 
 export interface User {
   id: string;
@@ -22,6 +23,8 @@ export interface User {
   lastName: string;
   department: Department;
   role: Role;
+  /** Set when role is 'carcinome_intern' — matches the allottedIntern field on patients */
+  internName?: string;
 }
 
 export interface AuthContextType {
