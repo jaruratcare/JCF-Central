@@ -48,14 +48,16 @@ export const handleLogin: RequestHandler = async (req, res) => {
       return;
     }
 
-    if (!supabase || !supabaseAdmin) {
+    const authClient = createAuthClient();
+    if (!authClient || !supabaseAdmin) {
       res.status(503).json({ error: 'Authentication service not configured' });
       return;
     }
 
     console.log('Attempting login for:', email);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Use isolated auth client to authenticate credentials without polluting service role
+    const { data, error } = await authClient.auth.signInWithPassword({
       email,
       password,
     });
@@ -70,62 +72,72 @@ export const handleLogin: RequestHandler = async (req, res) => {
       console.log('Auth successful for user:', data.user.id);
 
       // Use service role client to bypass RLS when reading/writing user profiles
-      let { data: profileData, error: profileError } = await supabaseAdmin
+      const dbClient = supabaseAdmin || supabase;
+      if (!dbClient) {
+        res.status(503).json({ error: 'Database service not configured' });
+        return;
+      }
+
+      let { data: profileData, error: profileError } = await dbClient
         .from('users')
         .select('id, name, email, department:dept_id(slug, label), role:role_id(slug, label)')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileError) {
+      if (!profileData || profileError) {
         console.log('Profile not found, creating default profile for user:', data.user.id);
 
         let deptId = null;
         let roleId = null;
 
         // Try to get default department (tech)
-        const { data: defaultDept } = await supabaseAdmin
+        const { data: defaultDept } = await dbClient
           .from('departments')
           .select('id')
           .eq('slug', 'tech')
-          .single();
+          .maybeSingle();
 
         if (defaultDept?.id) {
           deptId = defaultDept.id;
         } else {
           // Fallback: get the first available department
-          const { data: firstDept } = await supabaseAdmin
+          const { data: firstDept } = await dbClient
             .from('departments')
             .select('id')
             .limit(1)
-            .single();
+            .maybeSingle();
           deptId = firstDept?.id;
         }
 
         // Try to get default role (member)
-        const { data: defaultRole } = await supabaseAdmin
+        const { data: defaultRole } = await dbClient
           .from('roles')
           .select('id')
           .eq('slug', 'member')
-          .single();
+          .maybeSingle();
 
         if (defaultRole?.id) {
           roleId = defaultRole.id;
         } else {
           // Fallback: get the first available role
-          const { data: firstRole } = await supabaseAdmin
+          const { data: firstRole } = await dbClient
             .from('roles')
             .select('id')
             .limit(1)
-            .single();
+            .maybeSingle();
           roleId = firstRole?.id;
         }
 
         console.log('Using dept_id:', deptId, 'role_id:', roleId);
 
+        // Derive user name from user_metadata or email
+        const userMeta = data.user.user_metadata || {};
+        const userName = userMeta.full_name || userMeta.name || data.user.email?.split('@')[0] || 'User';
+
         // Create user profile using service role (bypasses RLS)
         const profilePayload: any = {
           id: data.user.id,
-          name: data.user.email?.split('@')[0] || 'User',
+          name: userName,
           email: data.user.email,
           status: 'active',
           joined_at: new Date().toISOString()
@@ -134,7 +146,7 @@ export const handleLogin: RequestHandler = async (req, res) => {
         if (deptId) profilePayload.dept_id = deptId;
         if (roleId) profilePayload.role_id = roleId;
 
-        const { data: newProfile, error: insertError } = await supabaseAdmin
+        const { data: newProfile, error: insertError } = await dbClient
           .from('users')
           .insert([profilePayload])
           .select('id, name, email, department:dept_id(slug, label), role:role_id(slug, label)')
@@ -152,14 +164,15 @@ export const handleLogin: RequestHandler = async (req, res) => {
         profileData = newProfile;
       }
 
-      const [firstName, ...lastNameParts] = profileData.name.split(' ');
+      const userName = profileData.name || data.user.email?.split('@')[0] || 'User';
+      const [firstName, ...lastNameParts] = userName.split(' ');
       const deptSlug = (profileData.department as any)?.slug || 'tech';
       const roleSlug = (profileData.role as any)?.slug || 'member';
 
       const user: Record<string, string> = {
         id: profileData.id,
-        email: profileData.email,
-        firstName: firstName,
+        email: profileData.email || data.user.email,
+        firstName: firstName || 'User',
         lastName: lastNameParts.join(' ') || '',
         department: deptSlug.replace(/_/g, '-'),
         role: roleSlug.replace(/_/g, '-'),
@@ -196,16 +209,9 @@ export const handleLogin: RequestHandler = async (req, res) => {
 
 export const handleLogout: RequestHandler = async (req, res) => {
   try {
-    if (!supabase) {
-      res.status(503).json({ error: 'Authentication service not configured' });
-      return;
-    }
-
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      res.status(400).json({ error: error.message });
-      return;
+    const authClient = createAuthClient();
+    if (authClient) {
+      await authClient.auth.signOut();
     }
 
     res.json({ success: true });
@@ -214,3 +220,4 @@ export const handleLogout: RequestHandler = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+

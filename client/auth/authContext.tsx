@@ -15,12 +15,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         localStorage.setItem('jcf_auth_token', session.access_token);
-        // User data is already set from login endpoint, just restore from localStorage
         const storedUser = localStorage.getItem('jcf_user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch {}
         }
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('jcf_auth_token');
         setUser(null);
         localStorage.removeItem('jcf_user');
@@ -50,6 +51,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (session?.access_token) {
         localStorage.setItem('jcf_auth_token', session.access_token);
+        if (session.refresh_token) {
+          try {
+            await supabase.auth.setSession({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+            });
+          } catch (sessionErr) {
+            console.warn('Could not sync Supabase client session:', sessionErr);
+          }
+        }
       }
 
       if (session?.access_token && session?.refresh_token) {
@@ -79,6 +90,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'Content-Type': 'application/json',
         },
       });
+      try {
+        await supabase.auth.signOut();
+      } catch {}
       setUser(null);
       localStorage.removeItem('jcf_user');
       localStorage.removeItem('jcf_auth_token');

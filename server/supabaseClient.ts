@@ -1,18 +1,41 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-let supabase: any = null;
-let supabaseAdmin: any = null;
+// Admin client for backend operations (bypasses RLS).
+// persistSession: false ensures user auth sessions never mutate or overwrite the service role client.
+export const supabaseAdmin = (supabaseUrl && supabaseServiceRoleKey)
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  : null;
 
-if (supabaseUrl && supabaseKey && supabaseServiceRoleKey) {
-  // Public client for client-side operations (respects RLS)
-  supabase = createClient(supabaseUrl, supabaseKey);
+// Public client for anonymous or token-based operations
+export const supabasePublic = (supabaseUrl && supabaseKey)
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  : null;
 
-  // Service role client for server-side operations (bypasses RLS)
-  supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-}
+// Helper to create a clean, transient auth client for sign-in verification without sharing state
+export const createAuthClient = () => {
+  if (!supabaseUrl || !supabaseKey) return null;
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+};
 
-export { supabase, supabaseAdmin };
+// Default backend database client: always prefer supabaseAdmin (service role), fall back to public
+export const supabase = supabaseAdmin || supabasePublic;
+

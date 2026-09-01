@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { supabase, supabaseAdmin } from '../supabaseClient';
+import { supabaseAdmin, createAuthClient } from '../supabaseClient';
 
 export const handleChangePassword: RequestHandler = async (req, res) => {
   try {
@@ -21,13 +21,14 @@ export const handleChangePassword: RequestHandler = async (req, res) => {
       return;
     }
 
-    if (!supabase || !supabaseAdmin) {
+    const authClient = createAuthClient();
+    if (!authClient || !supabaseAdmin) {
       res.status(503).json({ error: 'Authentication service not configured' });
       return;
     }
 
     // Get current user from token
-    const { data: { user }, error: userError } = await supabase.auth.getUser(authToken);
+    const { data: { user }, error: userError } = await authClient.auth.getUser(authToken);
 
     if (userError || !user) {
       res.status(401).json({ error: 'Invalid session' });
@@ -35,7 +36,7 @@ export const handleChangePassword: RequestHandler = async (req, res) => {
     }
 
     // Verify current password by attempting to sign in
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await authClient.auth.signInWithPassword({
       email: user.email!,
       password: currentPassword,
     });
@@ -52,7 +53,7 @@ export const handleChangePassword: RequestHandler = async (req, res) => {
     );
 
     if (updateError) {
-      res.status(400).json({ error: 'Failed to update password' });
+      res.status(400).json({ error: 'Failed to update password: ' + updateError.message });
       return;
     }
 
@@ -62,3 +63,4 @@ export const handleChangePassword: RequestHandler = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
