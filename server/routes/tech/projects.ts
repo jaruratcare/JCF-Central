@@ -21,6 +21,16 @@ function hasInvalidProjectDates(startDate?: unknown, deadline?: unknown) {
   return typeof startDate === "string" && typeof deadline === "string" && Boolean(startDate) && Boolean(deadline) && deadline < startDate;
 }
 
+// Postgres rejects "" for date/uuid columns (22007/22P02) — the frontend sends
+// "" for cleared fields, so normalize those to null before they hit the DB.
+function nullifyEmptyStrings<T extends Record<string, unknown>>(data: T, fields: readonly string[]): T {
+  const result: Record<string, unknown> = { ...data };
+  for (const field of fields) {
+    if (result[field] === "") result[field] = null;
+  }
+  return result as unknown as T;
+}
+
 router.get("/projects", async (req, res): Promise<void> => {
   const user = req.user!;
   const rows = await sbSelect("projects", { order: "created_at.asc" });
@@ -75,9 +85,10 @@ router.post("/projects", async (req, res): Promise<void> => {
   const user = req.user!;
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const data = nullifyEmptyStrings(parsed.data, ["startDate", "deadline", "ownerMemberId"]);
 
   const ceo = await isCeoOffice(user);
-  const { visibleDepartmentIds, departmentId: requestedDeptId, ...rest } = parsed.data;
+  const { visibleDepartmentIds, departmentId: requestedDeptId, ...rest } = data;
 
   if (!ceo && !user.deptId) {
     res.status(403).json({ error: "You must be assigned to a department before creating a project" });
@@ -133,6 +144,7 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const data = nullifyEmptyStrings(parsed.data, ["startDate", "deadline", "ownerMemberId"]);
 
   const access = await getProjectAccess(req.user!, params.data.id);
   if (!hasAtLeast(access, "manage")) { res.status(403).json({ error: "Manage access required" }); return; }
@@ -145,7 +157,7 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const { status, ...updateFields } = parsed.data;
+  const { status, ...updateFields } = data;
   const normalizedStatus = normalizeProjectStatus(status);
   const payload = normalizedStatus ? { ...updateFields, status: normalizedStatus } : updateFields;
   const nextStartDate = updateFields.startDate ?? existingRows[0].start_date;

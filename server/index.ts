@@ -46,5 +46,13 @@ export function createServer() {
   app.use("/api/tech", techRouter);
   app.use("/api/carcinome", carcinomeRouter);
 
+  // Global error handler — keeps error responses as clean JSON instead of
+  // Express's default HTML stack dump, must be registered last.
+  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error(err);
+    if (res.headersSent) return;
+    res.status(500).json({ error: "Internal server error" });
+  });
+
   return app;
 }

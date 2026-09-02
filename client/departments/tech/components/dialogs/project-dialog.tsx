@@ -100,8 +100,10 @@ export function ProjectDialog({ open, onOpenChange, project }: ProjectDialogProp
         id: project.id,
         data: {
           ...updateData,
-          deadline:    updateData.deadline    || undefined,
-          description: updateData.description || undefined,
+          deadline:      updateData.deadline      || null,
+          startDate:     updateData.startDate     || null,
+          ownerMemberId: updateData.ownerMemberId || null,
+          description:   updateData.description   || undefined,
         },
       }, {
         onSuccess: () => {

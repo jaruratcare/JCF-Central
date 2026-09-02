@@ -133,7 +133,9 @@ export function ProjectSettingsDialog({ open, onOpenChange, project }: ProjectSe
         id: project.id,
         data: {
           ...data,
+          startDate: data.startDate || null,
           deadline: data.deadline || null,
+          ownerMemberId: data.ownerMemberId || null,
           status: data.status === "sign_off" ? "signed_off" : data.status,
         } as any,
       },
