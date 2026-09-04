@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { supabase, supabaseAdmin } from '../supabaseClient';
+import { createAuthClient, supabase, supabaseAdmin } from '../supabaseClient';
 import { findInternByEmail } from './carcinome/interns';
 
 export const handleRequestPasswordReset: RequestHandler = async (req, res) => {
